@@ -12,8 +12,8 @@
 #SBATCH --reservation=kurs00091
 
 # Redirect stdout and stderr
-#SBATCH -o ex1.out
-#SBATCH -e ex1.err
+#SBATCH -o dense.out
+#SBATCH -e dense.err
 
 module purge
 module load cuda/12.5 gcc/13.1.0

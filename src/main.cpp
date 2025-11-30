@@ -34,6 +34,7 @@ int main() {
       exists = false;
     }
   }
+  std::cout << "oi" << std::endl;
   if (!exists) {
     std::cerr << "Data directory not found (needs to be placed in the same "
                  "folder or one level up - \"./data\" or \"../data\")!\n";
