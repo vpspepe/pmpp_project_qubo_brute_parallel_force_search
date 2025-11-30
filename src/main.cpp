@@ -1,153 +1,156 @@
-#include "datatypes.h"
-#include "matrix_reader.h"
+#include "cpu_brute_force.h"
 #include "cuda_debug.h"
 #include "cuda_timer.h"
-#include "cpu_brute_force.h"
+#include "datatypes.h"
 #include "gpu_brute_force.h"
+#include "matrix_reader.h"
 #include "timer.h"
 
-#include <set>
-#include <iostream>
 #include <filesystem>
+#include <iostream>
+#include <set>
 
 #define MAX_QUBO_SIZE 30
 
 int main() {
-	auto gpus = get_gpu_info();
-	for (const auto & gpu : gpus)
-	{
-		print_gpu_info(gpu);
-	}
+  auto gpus = get_gpu_info();
+  for (const auto &gpu : gpus) {
+    print_gpu_info(gpu);
+  }
 
-	// scan directory for matrix files:
-	std::string matrix_path = "./data";
-	//check if path exists
-	bool exists = false;
-	try{
-		exists = std::filesystem::exists(matrix_path);
-	} catch (std::filesystem::filesystem_error& e)
-	{}
-	if (!exists)
-	{
-		try
-		{
-			matrix_path = "../data";
-			exists = std::filesystem::exists(matrix_path);
-		}
-		catch (std::filesystem::filesystem_error & e)
-		{
-			exists = false;
-		}
-	}
-	if (!exists)
-	{
-		std::cerr << "Data directory not found (needs to be placed in the same folder or one level up - \"./data\" or \"../data\")!\n";
-		return -1;
-	}
-	auto iterator = std::filesystem::directory_iterator(matrix_path);
-	std::vector<std::string> matrix_files;
-	for (const auto & entry : iterator)
-	{
-		if (entry.path().extension() == ".mtx")
-		{
-			matrix_files.push_back(entry.path().string());
-		}
-	}
-	auto dense_brute_forcer = CPUQUBOBruteForcer<IndexType, ValueType, StateType, DenseMatrix<ValueType>>();
-	auto sparse_brute_forcer = CPUQUBOBruteForcer<IndexType, ValueType, StateType, SparseMatrix<ValueType, IndexType>>();
-	auto cuda_dense_brute_forcer = GPUQUBOBruteForcer<IndexType, ValueType, StateType, DenseMatrix<ValueType>>();
-	auto cuda_sparse_brute_forcer = GPUQUBOBruteForcer<IndexType, ValueType, StateType, SparseMatrix<ValueType, IndexType>>();
+  // scan directory for matrix files:
+  std::string matrix_path = "./data";
+  // check if path exists
+  bool exists = false;
+  try {
+    exists = std::filesystem::exists(matrix_path);
+  } catch (std::filesystem::filesystem_error &e) {
+  }
+  if (!exists) {
+    try {
+      matrix_path = "../data";
+      exists = std::filesystem::exists(matrix_path);
+    } catch (std::filesystem::filesystem_error &e) {
+      exists = false;
+    }
+  }
+  if (!exists) {
+    std::cerr << "Data directory not found (needs to be placed in the same "
+                 "folder or one level up - \"./data\" or \"../data\")!\n";
+    return -1;
+  }
+  auto iterator = std::filesystem::directory_iterator(matrix_path);
+  std::vector<std::string> matrix_files;
+  for (const auto &entry : iterator) {
+    if (entry.path().extension() == ".mtx") {
+      matrix_files.push_back(entry.path().string());
+    }
+  }
+  auto dense_brute_forcer = CPUQUBOBruteForcer<IndexType, ValueType, StateType,
+                                               DenseMatrix<ValueType>>();
+  auto sparse_brute_forcer =
+      CPUQUBOBruteForcer<IndexType, ValueType, StateType,
+                         SparseMatrix<ValueType, IndexType>>();
+  auto cuda_dense_brute_forcer =
+      GPUQUBOBruteForcer<IndexType, ValueType, StateType,
+                         DenseMatrix<ValueType>>();
+  auto cuda_sparse_brute_forcer =
+      GPUQUBOBruteForcer<IndexType, ValueType, StateType,
+                         SparseMatrix<ValueType, IndexType>>();
 
-	for (const auto & file : matrix_files)
-	{
-		auto sparse_matrix = readMatrixMarket<ValueType, IndexType>(file);
-		if (sparse_matrix.rows > MAX_QUBO_SIZE)
-			continue; // limit size
+  for (const auto &file : matrix_files) {
+    auto sparse_matrix = readMatrixMarket<ValueType, IndexType>(file);
+    if (sparse_matrix.rows > MAX_QUBO_SIZE)
+      continue; // limit size
 
-		std::cout << "#################################################################\nMatrix: " << file << "\n\n";
-		std::cout << "Matrix: " << sparse_matrix.rows << " x " << sparse_matrix.cols << " with " << sparse_matrix.nnz << " non-zeros read from " << file << "\n";
+    std::cout << "#############################################################"
+                 "####\nMatrix: "
+              << file << "\n\n";
+    std::cout << "Matrix: " << sparse_matrix.rows << " x " << sparse_matrix.cols
+              << " with " << sparse_matrix.nnz << " non-zeros read from "
+              << file << "\n";
 
-		auto density = static_cast<double>(sparse_matrix.nnz) / static_cast<double>(sparse_matrix.rows * sparse_matrix.cols);
-		std::vector<std::vector<StateType>> cpu_results;
-		std::set<size_t> cpu_binary_results;
+    auto density = static_cast<double>(sparse_matrix.nnz) /
+                   static_cast<double>(sparse_matrix.rows * sparse_matrix.cols);
+    std::vector<std::vector<StateType>> cpu_results;
+    std::set<size_t> cpu_binary_results;
 
-		std::vector<std::vector<StateType>> gpu_results;
+    std::vector<std::vector<StateType>> gpu_results;
 
-		// use dense matrices for dense problems
-		if (density >= 0.5)
-		{
-			std::cout << "**CPU: \n\n";
-			auto dense_matrix = sparse_to_dense(sparse_matrix);
-			{
-				Timer timer("Dense Brute-force optimization");
-				cpu_results = dense_brute_forcer.brute_force_optima(dense_matrix);
-				
-			}
-			std::cout << "\n\n**GPU: \n\n";
-			{
-				CudaTimer timer("GPU dense Brute-force optimization");
-				gpu_results = cuda_dense_brute_forcer.brute_force_optima(dense_matrix);
-				timer.stop();
-				timer.wait_for_time();
-			}
-		} else
-		{
-			std::cout << "**CPU: \n\n";
-			{
-				Timer timer("Sparse Brute-force optimization");
-				cpu_results = sparse_brute_forcer.brute_force_optima(sparse_matrix);
-			}
-			std::cout << "\n\n**GPU: \n\n";
-			{
-				CudaTimer timer("GPU sparse Brute-force optimization");
-				gpu_results = cuda_sparse_brute_forcer.brute_force_optima(sparse_matrix);
-				timer.stop();
-				timer.wait_for_time();
-			}
-		}
-		std::cout << "CPU Optimal states: \n" << (cpu_results.size() == 0 ? "<Empty>\n" : "");
-		for (int i = 0; i < cpu_results.size(); i++)
-		{
-			auto const & state = cpu_results[i];
-			std::cout << i << ": ";
-			for (const auto & bit : state)
-			{
-				std::cout << static_cast<int>(bit) << " ";
-			}
-			std::cout << "Energy: " << compute_energy<ValueType>(sparse_matrix, state.data());
-			auto binary_state = state_vector_to_binary_reprensentation(state);
-			if (cpu_binary_results.find(binary_state) != cpu_binary_results.end())
-			{
-				std::cout << " - DUPLICATE!";
-			}
-			std::cout << "\n";
-			cpu_binary_results.insert(binary_state);
-		}
+    // use dense matrices for dense problems
+    if (density >= 0.5) {
+      std::cout << "**CPU: \n\n";
+      auto dense_matrix = sparse_to_dense(sparse_matrix);
+      {
+        Timer timer("Dense Brute-force optimization");
+        cpu_results = dense_brute_forcer.brute_force_optima(dense_matrix);
+      }
+      std::cout << "\n\n**GPU: \n\n";
+      {
+        CudaTimer timer("GPU dense Brute-force optimization");
+        gpu_results = cuda_dense_brute_forcer.brute_force_optima(dense_matrix);
+        timer.stop();
+        timer.wait_for_time();
+      }
+    } else {
+      std::cout << "**CPU: \n\n";
+      {
+        Timer timer("Sparse Brute-force optimization");
+        cpu_results = sparse_brute_forcer.brute_force_optima(sparse_matrix);
+      }
+      std::cout << "\n\n**GPU: \n\n";
+      {
+        CudaTimer timer("GPU sparse Brute-force optimization");
+        gpu_results =
+            cuda_sparse_brute_forcer.brute_force_optima(sparse_matrix);
+        timer.stop();
+        timer.wait_for_time();
+      }
+    }
+    std::cout << "CPU Optimal states: \n"
+              << (cpu_results.size() == 0 ? "<Empty>\n" : "");
+    for (int i = 0; i < cpu_results.size(); i++) {
+      auto const &state = cpu_results[i];
+      std::cout << i << ": ";
+      for (const auto &bit : state) {
+        std::cout << static_cast<int>(bit) << " ";
+      }
+      std::cout << "Energy: "
+                << compute_energy<ValueType>(sparse_matrix, state.data());
+      auto binary_state = state_vector_to_binary_reprensentation(state);
+      if (cpu_binary_results.find(binary_state) != cpu_binary_results.end()) {
+        std::cout << " - DUPLICATE!";
+      }
+      std::cout << "\n";
+      cpu_binary_results.insert(binary_state);
+    }
 
-		std::cout << "\nGPU Optimal states: \n" << (gpu_results.size() == 0 ? "<Empty>\n" : "");
-		int identical_states = 0;
-		for (int i = 0; i < gpu_results.size(); i++)
-		{
-			auto const & state = gpu_results[i];
-			std::cout << i << ": ";
-			for (const auto & bit : state)
-			{
-				std::cout << static_cast<int>(bit) << " ";
-			}
-			std::cout << "Energy: " << compute_energy<ValueType>(sparse_matrix, state.data());
-			auto gpu_state = state_vector_to_binary_reprensentation(state);
-			if(cpu_binary_results.find(gpu_state) == cpu_binary_results.end())
-			{
-				std::cout << " [WRONG! NOT FOUND IN CPU RESULTS]";
-			} else {
-				identical_states++;
-			}
-			std::cout << "\n";
-		}
-		std::cout << "\nNumber of identical states found on CPU and GPU: " << identical_states << " / " << cpu_results.size() << " CPU results \n";
+    std::cout << "\nGPU Optimal states: \n"
+              << (gpu_results.size() == 0 ? "<Empty>\n" : "");
+    int identical_states = 0;
+    for (int i = 0; i < gpu_results.size(); i++) {
+      auto const &state = gpu_results[i];
+      std::cout << i << ": ";
+      for (const auto &bit : state) {
+        std::cout << static_cast<int>(bit) << " ";
+      }
+      std::cout << "Energy: "
+                << compute_energy<ValueType>(sparse_matrix, state.data());
+      auto gpu_state = state_vector_to_binary_reprensentation(state);
+      if (cpu_binary_results.find(gpu_state) == cpu_binary_results.end()) {
+        std::cout << " [WRONG! NOT FOUND IN CPU RESULTS]";
+      } else {
+        identical_states++;
+      }
+      std::cout << "\n";
+    }
+    std::cout << "\nNumber of identical states found on CPU and GPU: "
+              << identical_states << " / " << cpu_results.size()
+              << " CPU results \n";
 
-		std::cout << "#################################################################\n\n";
-	}
+    std::cout << "#############################################################"
+                 "####\n\n";
+  }
 
-	return 0;
+  return 0;
 }

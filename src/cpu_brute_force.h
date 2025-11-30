@@ -7,6 +7,7 @@
 #include <iostream>
 #include <bit>
 #include <vector>
+#include <limits>
 
 #ifdef WITH_OPENMP
 #include <omp.h> 

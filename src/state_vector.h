@@ -1,5 +1,7 @@
 #pragma once
 #include <type_traits>
+#include <cstddef>
+#include <vector>
 
 template<typename sT>
 size_t state_vector_to_binary_reprensentation(std::vector<sT> const & state_vector) {

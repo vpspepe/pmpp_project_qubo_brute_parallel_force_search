@@ -1,4 +1,6 @@
 #pragma once
+#include <cstddef>
+#include <utility>
 
 //Dense matrix row-major format
 template<typename T>
