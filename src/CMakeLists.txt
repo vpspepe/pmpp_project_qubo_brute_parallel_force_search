@@ -124,4 +124,4 @@ endif()
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 #copy data files to build folder
-file(COPY ${CMAKE_SOURCE_DIR}/../data DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/../data_dense DESTINATION ${CMAKE_BINARY_DIR})

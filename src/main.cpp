@@ -19,7 +19,7 @@ int main() {
   }
 
   // scan directory for matrix files:
-  std::string matrix_path = "./data";
+  std::string matrix_path = "./data_dense";
   // check if path exists
   bool exists = false;
   try {
@@ -28,16 +28,15 @@ int main() {
   }
   if (!exists) {
     try {
-      matrix_path = "../data";
+      matrix_path = "../data_dense";
       exists = std::filesystem::exists(matrix_path);
     } catch (std::filesystem::filesystem_error &e) {
       exists = false;
     }
   }
-  std::cout << "oi" << std::endl;
   if (!exists) {
     std::cerr << "Data directory not found (needs to be placed in the same "
-                 "folder or one level up - \"./data\" or \"../data\")!\n";
+                 "folder or one level up - \"./data_dense\" or \"../data_dense\")!\n";
     return -1;
   }
   auto iterator = std::filesystem::directory_iterator(matrix_path);
@@ -59,6 +58,8 @@ int main() {
       GPUQUBOBruteForcer<IndexType, ValueType, StateType,
                          SparseMatrix<ValueType, IndexType>>();
 
+  std::cout << "Test 1" << std::endl;
+  std::cout << "file one: " << matrix_files[0] << std::endl;
   for (const auto &file : matrix_files) {
     auto sparse_matrix = readMatrixMarket<ValueType, IndexType>(file);
     if (sparse_matrix.rows > MAX_QUBO_SIZE)
