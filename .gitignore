@@ -1,0 +1,31 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.o
+*.obj
+
+# Build directory
+build/
+
+# Executables
+QUBOBruteForcing
+*.exe
+*.out
+*.app
+
+# Slurm Output Files (logs from run.sh)
+ex1.out
+ex1.err
+
+# IDE/Editor specific files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# CMake generated files (in case cmake was run in root)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
