@@ -1,6 +1,7 @@
 #include "gpu_brute_force.h"
 #include "datatypes.h"
 #include "cuda_util.h"
+#include "state_vector.h"
 #include <cmath>
 #include <vector>
 
