@@ -8,6 +8,10 @@
 # Build directory
 build/
 
+# Tests directory
+tests/
+
+
 # Executables
 QUBOBruteForcing
 *.exe
