@@ -15,6 +15,7 @@
 #SBATCH -o dense.out
 #SBATCH -e dense.err
 
-# module purge
-# module load cuda/12.5 gcc/13.1.0
+module purge
+module load cuda/12.5 gcc/13.1.0
 ./build/QUBOBruteForcing
+cat *.out *.err > out.txt

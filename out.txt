@@ -1,0 +1,223 @@
+#0: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#1: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#2: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#3: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_25.mtx
+
+Matrix: 25 x 25 with 625 non-zeros read from ./data_dense/one_hot_encoding_25.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 1366.9 milliseconds
+
+
+**GPU: 
+
+Time for GPU dense Brute-force optimization: 2.8377 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+10: 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+11: 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+12: 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+13: 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+14: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 Energy: -1
+15: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 Energy: -1
+16: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 Energy: -1
+17: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 Energy: -1
+18: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 Energy: -1
+19: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 Energy: -1
+20: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 Energy: -1
+21: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 Energy: -1
+22: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 Energy: -1
+23: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 Energy: -1
+24: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+1: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 9 / 25 CPU results 
+#################################################################
+
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_10.mtx
+
+Matrix: 10 x 10 with 100 non-zeros read from ./data_dense/one_hot_encoding_10.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 0.019726 milliseconds
+
+
+**GPU: 
+
+Time for GPU dense Brute-force optimization: 0.293536 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 0 1 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 Energy: -1
+2: 1 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 3 / 10 CPU results 
+#################################################################
+
+#################################################################
+Matrix: ./data_dense/maxcut_g000134_qubo.mtx
+
+Matrix: 8 x 8 with 36 non-zeros read from ./data_dense/maxcut_g000134_qubo.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 0.006894 milliseconds
+
+
+**GPU: 
+
+Time for GPU dense Brute-force optimization: 0.2824 ms
+CPU Optimal states: 
+0: 1 0 1 0 1 1 0 0 Energy: -10
+1: 1 1 0 1 0 1 0 0 Energy: -10
+2: 1 0 1 1 0 1 0 0 Energy: -10
+3: 0 1 0 1 0 1 1 0 Energy: -10
+4: 0 1 1 0 1 0 1 0 Energy: -10
+5: 1 0 1 0 1 0 1 0 Energy: -10
+6: 0 1 0 1 1 0 1 0 Energy: -10
+7: 0 1 0 1 0 0 1 1 Energy: -10
+8: 0 0 1 0 1 0 1 1 Energy: -10
+9: 0 1 0 0 1 0 1 1 Energy: -10
+10: 1 0 1 0 0 1 0 1 Energy: -10
+11: 0 1 0 1 0 1 0 1 Energy: -10
+12: 1 0 0 1 0 1 0 1 Energy: -10
+13: 1 0 1 0 1 0 0 1 Energy: -10
+
+GPU Optimal states: 
+0: 1 1 0 1 0 1 0 0 Energy: -10
+
+Number of identical states found on CPU and GPU: 1 / 14 CPU results 
+#################################################################
+
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_20.mtx
+
+Matrix: 20 x 20 with 400 non-zeros read from ./data_dense/one_hot_encoding_20.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 34.3337 milliseconds
+
+
+**GPU: 
+
+Time for GPU dense Brute-force optimization: 0.338176 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 Energy: -1
+10: 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 Energy: -1
+11: 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 Energy: -1
+12: 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 Energy: -1
+13: 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 Energy: -1
+14: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 Energy: -1
+15: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 Energy: -1
+16: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 Energy: -1
+17: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 Energy: -1
+18: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 Energy: -1
+19: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+1: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 9 / 20 CPU results 
+#################################################################
+
+Lmod: unloading gcc 13.1.0 
+Lmod: unloading cuda 12.5 
+Lmod: loading cuda 12.5 
+Lmod: loading gcc 13.1.0 

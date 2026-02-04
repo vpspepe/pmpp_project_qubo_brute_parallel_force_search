@@ -26,12 +26,21 @@ struct GPUQUBOBruteForcer<iT, vT, sT, DenseMatrix<vT>>
 
     size_t n = mat.rows;
 
-    // Heurística de Threads (A mesma de antes)
+    // Heurística de Prefix Fixing:
+    // Queremos criar threads suficientes para ocupar a GPU, mas dar trabalho
+    // suficiente (sufixo) para cada thread compensar o overhead de criação.
+    // Estratégia: Tentar deixar aprox. 14 bits para o sufixo (16.384
+    // iterações/thread).
+    int max_fixed_bits = 16;
     int n_fixed_bits = 0;
-    if (n > 14)
-      n_fixed_bits = n - 14;
-    if (n_fixed_bits > 24)
-      n_fixed_bits = 24;
+    if (n > max_fixed_bits)
+      n_fixed_bits = max_fixed_bits;
+    else
+      n_fixed_bits = static_cast<int>(n);
+    // Limite de segurança: Não criar mais threads do que o grid suporta
+    // facilmente
+    // if (n_fixed_bits > 24)
+    //   n_fixed_bits = 24;
 
     size_t num_threads = 1ULL << n_fixed_bits;
     unsigned long long states_per_thread = 1ULL << (n - n_fixed_bits);

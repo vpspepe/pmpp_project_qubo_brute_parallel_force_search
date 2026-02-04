@@ -33,6 +33,68 @@
 │   │   │       ├── a.out
 │   │   │       ├── CMakeCXXCompilerId.cpp
 │   │   │       └── tmp
+│   │   ├── 4.2.1
+│   │   │   ├── CMakeCUDACompiler.cmake
+│   │   │   ├── CMakeCXXCompiler.cmake
+│   │   │   ├── CMakeDetermineCompilerABI_CUDA.bin
+│   │   │   ├── CMakeDetermineCompilerABI_CXX.bin
+│   │   │   ├── CMakeSystem.cmake
+│   │   │   ├── CompilerIdCUDA
+│   │   │   │   ├── a.out
+│   │   │   │   ├── CMakeCUDACompilerId.cu
+│   │   │   │   └── tmp
+│   │   │   │       ├── a_dlink.fatbin
+│   │   │   │       ├── a_dlink.fatbin.c
+│   │   │   │       ├── a_dlink.o
+│   │   │   │       ├── a_dlink.reg.c
+│   │   │   │       ├── a_dlink.sm_52.cubin
+│   │   │   │       ├── CMakeCUDACompilerId.cpp1.ii
+│   │   │   │       ├── CMakeCUDACompilerId.cpp4.ii
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.c
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.cpp
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.gpu
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.stub.c
+│   │   │   │       ├── CMakeCUDACompilerId.fatbin
+│   │   │   │       ├── CMakeCUDACompilerId.fatbin.c
+│   │   │   │       ├── CMakeCUDACompilerId.module_id
+│   │   │   │       ├── CMakeCUDACompilerId.o
+│   │   │   │       ├── CMakeCUDACompilerId.ptx
+│   │   │   │       └── CMakeCUDACompilerId.sm_52.cubin
+│   │   │   └── CompilerIdCXX
+│   │   │       ├── a.out
+│   │   │       ├── CMakeCXXCompilerId.cpp
+│   │   │       └── tmp
+│   │   ├── 4.2.3
+│   │   │   ├── CMakeCUDACompiler.cmake
+│   │   │   ├── CMakeCXXCompiler.cmake
+│   │   │   ├── CMakeDetermineCompilerABI_CUDA.bin
+│   │   │   ├── CMakeDetermineCompilerABI_CXX.bin
+│   │   │   ├── CMakeSystem.cmake
+│   │   │   ├── CompilerIdCUDA
+│   │   │   │   ├── a.out
+│   │   │   │   ├── CMakeCUDACompilerId.cu
+│   │   │   │   └── tmp
+│   │   │   │       ├── a_dlink.fatbin
+│   │   │   │       ├── a_dlink.fatbin.c
+│   │   │   │       ├── a_dlink.o
+│   │   │   │       ├── a_dlink.reg.c
+│   │   │   │       ├── a_dlink.sm_52.cubin
+│   │   │   │       ├── CMakeCUDACompilerId.cpp1.ii
+│   │   │   │       ├── CMakeCUDACompilerId.cpp4.ii
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.c
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.cpp
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.gpu
+│   │   │   │       ├── CMakeCUDACompilerId.cudafe1.stub.c
+│   │   │   │       ├── CMakeCUDACompilerId.fatbin
+│   │   │   │       ├── CMakeCUDACompilerId.fatbin.c
+│   │   │   │       ├── CMakeCUDACompilerId.module_id
+│   │   │   │       ├── CMakeCUDACompilerId.o
+│   │   │   │       ├── CMakeCUDACompilerId.ptx
+│   │   │   │       └── CMakeCUDACompilerId.sm_52.cubin
+│   │   │   └── CompilerIdCXX
+│   │   │       ├── a.out
+│   │   │       ├── CMakeCXXCompilerId.cpp
+│   │   │       └── tmp
 │   │   ├── cmake.check_cache
 │   │   ├── CMakeConfigureLog.yaml
 │   │   ├── CMakeDirectoryInformation.cmake
@@ -52,6 +114,8 @@
 │   │   │   ├── gpu_brute_force.cu.o
 │   │   │   ├── gpu_brute_force.cu.o.d
 │   │   │   ├── includes_CUDA.rsp
+│   │   │   ├── kernel.cu.o
+│   │   │   ├── kernel.cu.o.d
 │   │   │   ├── link.txt
 │   │   │   ├── main.cpp.o
 │   │   │   ├── main.cpp.o.d
@@ -85,7 +149,6 @@
 │   ├── Makefile
 │   ├── QUBOBruteForcing
 │   └── run_cmake.sh
-├── coletar.sh
 ├── compile_commands.json
 ├── compile.sh
 ├── data
@@ -125,17 +188,20 @@
 │   ├── maxcut_g001046_qubo.mtx
 │   ├── maxcut_g001940_qubo.mtx
 │   └── maxcut_g002768_qubo.mtx
+├── out.txt
+├── project.tar.gz
 ├── README.md
 ├── run_cmake.sh
 ├── run.sh
 ├── saida_cpp.txt
 ├── saida_cu.txt
-├── saida_hpp.txt
 ├── saida_h.txt
+├── send_to_cluster.sh
 ├── src
 │   ├── cmake
 │   │   └── BundleDependencies.cmake.in
 │   ├── CMakeLists.txt
+│   ├── coletar.sh
 │   ├── cpu_brute_force.h
 │   ├── cuda_debug.h
 │   ├── cuda_timer.h
@@ -143,13 +209,19 @@
 │   ├── datatypes.h
 │   ├── gpu_brute_force.cu
 │   ├── gpu_brute_force.h
+│   ├── kernel.cu
+│   ├── kernel.h
 │   ├── main.cpp
 │   ├── matrix.h
 │   ├── matrix_reader.h
 │   ├── qubo_brute_forcer.h
 │   ├── qubo_energy.h
+│   ├── saida_cpp.txt
+│   ├── saida_cu.txt
+│   ├── saida_hpp.txt
+│   ├── saida_h.txt
 │   ├── state_vector.h
 │   └── timer.h
-└── tree.sh
+└── tree.txt
 
-16 directories, 136 files
+26 directories, 198 files

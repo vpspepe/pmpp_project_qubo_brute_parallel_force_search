@@ -1,4 +1,4 @@
-CAMINHO DO ARQUIVO: ./src/cuda_timer.h
+CAMINHO DO ARQUIVO: ./cuda_timer.h
 
 #pragma once
 #include "cuda_util.h"
@@ -83,7 +83,7 @@ private:
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/cuda_util.h
+CAMINHO DO ARQUIVO: ./cuda_util.h
 
 #pragma once
 #include <cassert>
@@ -112,7 +112,7 @@ inline bool check_cuda_error(cudaError_t code, const char *file, int line) {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/cuda_debug.h
+CAMINHO DO ARQUIVO: ./cuda_debug.h
 
 #pragma once
 #include "cuda_util.h"
@@ -200,7 +200,7 @@ template <typename T> inline std::vector<T> copy_to_cpu(T const *data, int n) {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/timer.h
+CAMINHO DO ARQUIVO: ./timer.h
 
 #pragma once
 #include <chrono>
@@ -230,7 +230,7 @@ private:
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/gpu_brute_force.h
+CAMINHO DO ARQUIVO: ./gpu_brute_force.h
 
 #pragma once
 
@@ -262,7 +262,7 @@ struct GPUQUBOBruteForcer : public QUBOBruteForcer<iT, vT, sT, MatrixType> {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/state_vector.h
+CAMINHO DO ARQUIVO: ./state_vector.h
 
 #pragma once
 #include <cstddef>
@@ -291,7 +291,7 @@ std::vector<sT> binary_representation_to_state_vector(size_t state, size_t n) {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/qubo_brute_forcer.h
+CAMINHO DO ARQUIVO: ./qubo_brute_forcer.h
 
 #pragma once
 
@@ -318,7 +318,7 @@ struct QUBOBruteForcer {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/matrix.h
+CAMINHO DO ARQUIVO: ./matrix.h
 
 #pragma once
 #include <cstddef>
@@ -411,7 +411,7 @@ DenseMatrix<vT> sparse_to_dense(const SparseMatrix<vT, iT> &sparse) {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/qubo_energy.h
+CAMINHO DO ARQUIVO: ./qubo_energy.h
 
 #pragma once
 #include "matrix.h"
@@ -558,7 +558,7 @@ vT compute_row_flip_energy_difference(SparseMatrix<vT, iT> const &mat,
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/kernel.h
+CAMINHO DO ARQUIVO: ./kernel.h
 
 #pragma once
 #include <cuda_runtime.h>
@@ -583,7 +583,7 @@ __global__ void kernel_brute_force_sparse(
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/cpu_brute_force.h
+CAMINHO DO ARQUIVO: ./cpu_brute_force.h
 
 #pragma once
 #include "matrix.h"
@@ -778,7 +778,7 @@ struct CPUQUBOBruteForcer : public QUBOBruteForcer<iT, vT, sT, MatrixType> {
 
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/datatypes.h
+CAMINHO DO ARQUIVO: ./datatypes.h
 
 #pragma once
 
@@ -789,7 +789,7 @@ using IndexType = std::uint32_t;
 using ValueType = double;
 ---------------------
 
-CAMINHO DO ARQUIVO: ./src/matrix_reader.h
+CAMINHO DO ARQUIVO: ./matrix_reader.h
 
 #pragma once
 
