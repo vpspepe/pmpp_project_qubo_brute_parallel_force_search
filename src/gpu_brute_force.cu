@@ -1,13 +1,24 @@
 #include "cuda_util.h"
 #include "datatypes.h"
 #include "gpu_brute_force.h"
-#include "kernel.h" // Atualize o kernel.h com a nova assinatura!
+#include "kernel.h"
 #include "state_vector.h"
 
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <vector>
+
+// Explicitly handle memory to avoid including extra headers
+// Simple helper to free memory on scope exit
+struct CudaFreer {
+  void *p;
+  CudaFreer(void *ptr) : p(ptr) {}
+  ~CudaFreer() {
+    if (p)
+      cudaFree(p);
+  }
+};
 
 template <typename iT, typename vT, typename sT, typename MatrixType>
 std::vector<std::vector<sT>>
@@ -17,6 +28,7 @@ GPUQUBOBruteForcer<iT, vT, sT, MatrixType>::brute_force_optima(
   return {};
 }
 
+// Specialization for DenseMatrix
 template <typename iT, typename vT, typename sT>
 struct GPUQUBOBruteForcer<iT, vT, sT, DenseMatrix<vT>>
     : public QUBOBruteForcer<iT, vT, sT, DenseMatrix<vT>> {
@@ -24,122 +36,110 @@ struct GPUQUBOBruteForcer<iT, vT, sT, DenseMatrix<vT>>
   std::vector<std::vector<sT>>
   brute_force_optima(DenseMatrix<vT> const &mat) override {
 
+    std::cout << "DEBUG: Starting GPU Two-Pass Optimization..." << std::endl;
+
     size_t n = mat.rows;
 
-    // Heurística de Prefix Fixing:
-    // Queremos criar threads suficientes para ocupar a GPU, mas dar trabalho
-    // suficiente (sufixo) para cada thread compensar o overhead de criação.
-    // Estratégia: Tentar deixar aprox. 14 bits para o sufixo (16.384
-    // iterações/thread).
-    int max_fixed_bits = 16;
-    int n_fixed_bits = 0;
-    if (n > max_fixed_bits)
-      n_fixed_bits = max_fixed_bits;
-    else
-      n_fixed_bits = static_cast<int>(n);
-    // Limite de segurança: Não criar mais threads do que o grid suporta
-    // facilmente
-    // if (n_fixed_bits > 24)
-    //   n_fixed_bits = 24;
+    // 1. Calculate Grid Dimensions
+    // We stick to the heuristic that worked well in your previous code
+    int m_fixed_bits = 0;
+    if (n > 14)
+      m_fixed_bits = n - 14;
+    if (m_fixed_bits > 24)
+      m_fixed_bits = 24;
+    if (m_fixed_bits < 0)
+      m_fixed_bits = 0;
 
-    size_t num_threads = 1ULL << n_fixed_bits;
-    unsigned long long states_per_thread = 1ULL << (n - n_fixed_bits);
+    unsigned long long total_threads = 1ULL << m_fixed_bits;
+    int block_size = 256;
+    int grid_size = (total_threads + block_size - 1) / block_size;
 
-    int threads_per_block = 256;
-    int blocks = (num_threads + threads_per_block - 1) / threads_per_block;
+    size_t smem_size = (n * n * sizeof(vT)) + (block_size * sizeof(vT));
 
-    // Memória Compartilhada: Matriz + Buffer de Redução de Energia
-    size_t smem_size = n * n * sizeof(vT) + threads_per_block * sizeof(vT);
-
-    // Alocação
-    vT *d_Q;
-    unsigned long long *d_found_states;
-    unsigned int *d_counter;
-
-    // Buffer global generoso (ex: 500k soluções)
-    unsigned int max_solutions = 500000;
+    // 2. Allocate GPU Memory
+    vT *d_Q = nullptr;
+    vT *d_global_min = nullptr;
+    unsigned int *d_counter = nullptr;
+    unsigned long long *d_solutions = nullptr;
+    unsigned int max_solutions = 10000000;
 
     CUDA_CALL(cudaMalloc(&d_Q, n * n * sizeof(vT)));
-    CUDA_CALL(cudaMalloc(&d_found_states,
-                         max_solutions * sizeof(unsigned long long)));
-    CUDA_CALL(cudaMalloc(&d_counter, sizeof(unsigned int)));
+    CudaFreer freeQ(d_Q);
 
-    // Zera contador
-    CUDA_CALL(cudaMemset(d_counter, 0, sizeof(unsigned int)));
-    // Copia Matriz
+    CUDA_CALL(cudaMalloc(&d_global_min, sizeof(vT)));
+    CudaFreer freeMin(d_global_min);
+
+    CUDA_CALL(cudaMalloc(&d_counter, sizeof(unsigned int)));
+    CudaFreer freeCounter(d_counter);
+
+    CUDA_CALL(
+        cudaMalloc(&d_solutions, max_solutions * sizeof(unsigned long long)));
+    CudaFreer freeSol(d_solutions);
+
+    // 3. Copy Data
     CUDA_CALL(
         cudaMemcpy(d_Q, mat.data, n * n * sizeof(vT), cudaMemcpyHostToDevice));
 
-    // Lança Kernel (Passo Único!)
-    // Passamos nullptr para os antigos arrays de output que não usamos mais
-    kernel_brute_force_dense<<<blocks, threads_per_block, smem_size>>>(
-        d_Q, n, n_fixed_bits, states_per_thread, nullptr, nullptr, // Ignorados
-        d_found_states, d_counter, max_solutions // Novos parâmetros
-    );
+    // Initialize Min Energy
+    vT initial_max = std::numeric_limits<vT>::max();
+    CUDA_CALL(cudaMemcpy(d_global_min, &initial_max, sizeof(vT),
+                         cudaMemcpyHostToDevice));
+
+    // 4. PASS 1: Find Minimum Energy
+    kernel_find_min_energy<vT><<<grid_size, block_size, smem_size>>>(
+        d_Q, n, m_fixed_bits, d_global_min);
     CUDA_CALL(cudaGetLastError());
     CUDA_CALL(cudaDeviceSynchronize());
 
-    // Recupera contagem
-    unsigned int h_counter;
-    CUDA_CALL(cudaMemcpy(&h_counter, d_counter, sizeof(unsigned int),
+    vT h_min_energy;
+    CUDA_CALL(cudaMemcpy(&h_min_energy, d_global_min, sizeof(vT),
                          cudaMemcpyDeviceToHost));
 
-    if (h_counter > max_solutions)
-      h_counter = max_solutions;
+    // 5. PASS 2: Collect All Solutions
+    CUDA_CALL(cudaMemset(d_counter, 0, sizeof(unsigned int)));
 
-    // Recupera estados brutos
-    std::vector<unsigned long long> h_raw_states(h_counter);
-    if (h_counter > 0) {
-      CUDA_CALL(cudaMemcpy(h_raw_states.data(), d_found_states,
-                           h_counter * sizeof(unsigned long long),
+    kernel_collect_solutions<vT><<<grid_size, block_size, smem_size>>>(
+        d_Q, n, m_fixed_bits, h_min_energy, d_solutions, d_counter,
+        max_solutions);
+    CUDA_CALL(cudaGetLastError());
+    CUDA_CALL(cudaDeviceSynchronize());
+
+    // Retrieve Count
+    unsigned int h_count;
+    CUDA_CALL(cudaMemcpy(&h_count, d_counter, sizeof(unsigned int),
+                         cudaMemcpyDeviceToHost));
+
+    std::cout << "DEBUG: Solutions found: " << h_count << std::endl;
+
+    if (h_count > max_solutions)
+      h_count = max_solutions;
+
+    // Retrieve Solutions
+    std::vector<unsigned long long> raw_solutions(h_count);
+    if (h_count > 0) {
+      CUDA_CALL(cudaMemcpy(raw_solutions.data(), d_solutions,
+                           h_count * sizeof(unsigned long long),
                            cudaMemcpyDeviceToHost));
     }
 
-    // --- FILTRAGEM FINAL NA CPU ---
-    // Como cada bloco retornou o SEU melhor, o vetor global contém os campeões
-    // de cada bloco. Ainda precisamos filtrar o campeão global entre eles.
+    // 6. Format Output
+    std::vector<std::vector<sT>> formatted_solutions;
+    formatted_solutions.reserve(h_count);
 
-    vT global_min = std::numeric_limits<vT>::max();
-
-    // 1. Recalcular energias (rápido na CPU para < 500k itens) e achar o mínimo
-    // Nota: Poderíamos ter retornado a energia da GPU, mas recalcular aqui
-    // simplifica a gestão de memória e evita race conditions na escrita de um
-    // único valor "min_global" na GPU.
-    std::vector<vT> energies(h_counter);
-
-    for (size_t i = 0; i < h_counter; ++i) {
-      // Usamos a função compute_energy do qubo_energy.h (CPU version)
-      // Precisamos converter o bits para vetor ou adaptar compute_energy para
-      // aceitar bits O qubo_energy.h TEM uma sobrecarga para (DenseMatrix,
-      // size_t state)! Perfeito.
-      energies[i] = compute_energy(mat, (size_t)h_raw_states[i]);
-
-      if (energies[i] < global_min)
-        global_min = energies[i];
-    }
-
-    // 2. Selecionar apenas os que são iguais ao mínimo global
-    std::vector<std::vector<sT>> results;
-    vT epsilon = static_cast<vT>(1e-5);
-
-    for (size_t i = 0; i < h_counter; ++i) {
-      if (std::abs(energies[i] - global_min) < epsilon) {
-        results.push_back(
-            binary_representation_to_state_vector<sT>(h_raw_states[i], n));
+    for (unsigned long long state_mask : raw_solutions) {
+      std::vector<sT> state_vec(n);
+      for (size_t bit = 0; bit < n; ++bit) {
+        state_vec[bit] = (state_mask >> bit) & 1;
       }
+      formatted_solutions.push_back(state_vec);
     }
 
-    // Limpeza
-    CUDA_CALL(cudaFree(d_Q));
-    CUDA_CALL(cudaFree(d_found_states));
-    CUDA_CALL(cudaFree(d_counter));
-
-    return results;
+    return formatted_solutions;
   }
 };
 
-// Instanciação
-template class GPUQUBOBruteForcer<IndexType, ValueType, StateType,
-                                  DenseMatrix<ValueType>>;
-template class GPUQUBOBruteForcer<IndexType, ValueType, StateType,
-                                  SparseMatrix<ValueType, IndexType>>;
+// Explicit Instantiations
+template struct GPUQUBOBruteForcer<IndexType, ValueType, StateType,
+                                   DenseMatrix<ValueType>>;
+template struct GPUQUBOBruteForcer<IndexType, ValueType, StateType,
+                                   SparseMatrix<ValueType, IndexType>>;

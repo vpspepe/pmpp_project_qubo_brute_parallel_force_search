@@ -1,163 +1,324 @@
 #include "cuda_util.h"
 #include "kernel.h"
-#include "qubo_energy.h"
+#include <cfloat>
+#include <type_traits>
 
-// Capacidade do buffer local da thread (Registradores/L1)
-#define MAX_LOCAL_SOLUTIONS 16
+// Helper macro for absolute difference to handle both int and float/double
+#define ABS_DIFF(a, b) ((a) > (b) ? (a) - (b) : (b) - (a))
 
+// =============================================================================
+// ATOMIC MIN WRAPPERS
+// CUDA's native atomicMin supports int, but float/double requires CAS loops
+// on architectures < sm_90.
+// =============================================================================
+
+__device__ double atomicMin_double(double *address, double val) {
+  unsigned long long *address_as_ull = (unsigned long long *)address;
+  unsigned long long old = *address_as_ull, assumed;
+  do {
+    assumed = old;
+    double old_val = __longlong_as_double(assumed);
+    if (old_val <= val)
+      break;
+    old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val));
+  } while (assumed != old);
+  return __longlong_as_double(old);
+}
+
+__device__ float atomicMin_float(float *address, float val) {
+  int *address_as_int = (int *)address;
+  int old = *address_as_int, assumed;
+  do {
+    assumed = old;
+    float old_val = __int_as_float(assumed);
+    if (old_val <= val)
+      break;
+    old = atomicCAS(address_as_int, assumed, __float_as_int(val));
+  } while (assumed != old);
+  return __int_as_float(old);
+}
+
+// Generic overloads for the kernel to use
+__device__ inline void gpu_atomic_min(int *address, int val) {
+  atomicMin(address, val);
+}
+__device__ inline void gpu_atomic_min(float *address, float val) {
+  atomicMin_float(address, val);
+}
+__device__ inline void gpu_atomic_min(double *address, double val) {
+  atomicMin_double(address, val);
+}
+
+// =============================================================================
+// KERNEL 1: FIND MINIMUM ENERGY
+// =============================================================================
 template <typename vT>
-__global__ void kernel_brute_force_dense(
-    const vT *global_Q, int n, int n_fixed_bits,
-    unsigned long long num_states_per_thread,
-    vT *global_best_energy, // (Não usado nesta estratégia, mas mantido na
-                            // interface)
-    unsigned long long
-        *global_best_state // (Não usado, usamos o buffer dinâmico abaixo)
-    ,
-    unsigned long long *found_states_buffer // BUFFER GLOBAL DE SAÍDA
-    ,
-    unsigned int *found_counter // CONTADOR GLOBAL
-    ,
-    unsigned int max_global_solutions // PROTEÇÃO
-) {
-  // -------------------------------------------------------------------------
-  // 1. Shared Memory
-  // -------------------------------------------------------------------------
+__global__ void kernel_find_min_energy(const vT *__restrict__ global_Q, int n,
+                                       int n_fixed_bits,
+                                       vT *global_min_energy_ptr) {
+  // Shared Memory: Matrix Q + Reduction Buffer
   extern __shared__ char smem[];
   vT *shared_Q = reinterpret_cast<vT *>(smem);
+  vT *s_min_results = (vT *)&shared_Q[n * n];
 
-  // Espaço para redução de energia do bloco
-  vT *s_block_min = (vT *)&shared_Q[n * n];
+  int tid = threadIdx.x;
+  int bid = blockIdx.x;
+  int dim = blockDim.x;
 
-  int tid_in_block = threadIdx.x;
-  int matrix_size = n * n;
-
-  // Carga Colaborativa
-  for (int i = tid_in_block; i < matrix_size; i += blockDim.x) {
+  // 1. Cooperative Load of Matrix Q
+  int num_elements = n * n;
+  for (int i = tid; i < num_elements; i += dim) {
     shared_Q[i] = global_Q[i];
   }
   __syncthreads();
 
-  // -------------------------------------------------------------------------
-  // 2. Setup Inicial
-  // -------------------------------------------------------------------------
-  unsigned long long tid = blockIdx.x * blockDim.x + threadIdx.x;
-  unsigned long long current_state = tid << (n - n_fixed_bits);
+  // 2. Ghost Thread Guard
+  // If we launch more threads than there are prefixes (e.g. N=10, Threads=256),
+  // the extra threads must be neutralized.
+  unsigned long long global_tid = (unsigned long long)bid * dim + tid;
+  unsigned long long total_patterns = 1ULL << n_fixed_bits;
+  bool is_valid_thread = (global_tid < total_patterns);
 
-  // Energia Inicial
-  vT current_energy = 0;
-  for (int i = 0; i < n; ++i) {
-    if ((current_state >> (n - 1 - i)) & 1) {
-      for (int j = i; j < n; ++j) {
-        if ((current_state >> (n - 1 - j)) & 1) {
-          current_energy += shared_Q[i * n + j];
+  vT local_min;
+
+  if (!is_valid_thread) {
+    // Initialize with MAX value so it loses the reduction
+    if constexpr (std::is_integral<vT>::value)
+      local_min = 2147483647;
+    else if constexpr (sizeof(vT) == 8)
+      local_min = DBL_MAX;
+    else
+      local_min = FLT_MAX;
+  } else {
+    // --- VALID THREAD LOGIC ---
+    unsigned long long fixed_prefix = global_tid;
+    int n_vary = n - n_fixed_bits;
+    unsigned long long limit = 1ULL << n_vary;
+
+    // Pre-calculate Fixed Interactions to optimize the loop
+    vT cached_fixed_interactions[32]; // Max N=32 usually
+    vT current_energy = 0;
+
+    // Initial Energy (Fixed Bits Part)
+    // Calculating interactions among fixed bits
+    for (int i = 0; i < n_fixed_bits; ++i) {
+      // Note: fixed_prefix bits are at the "top" (n-1 down to n_vary)
+      // But for calculation simplicity, we map them to indices 0..n_fixed-1
+      // relative However, looking at your original logic, you construct the
+      // full state. Let's stick to the efficient delta update method.
+
+      if ((fixed_prefix >> i) & 1) {
+        int row = n_vary + i; // Map to the upper part of the matrix
+        // Diagonal
+        current_energy += shared_Q[row * n + row];
+        // Interaction with previous fixed bits
+        for (int j = 0; j < i; ++j) {
+          if ((fixed_prefix >> j) & 1) {
+            int col = n_vary + j;
+            // Consistent with your original kernel: sum one side
+            current_energy += shared_Q[row * n + col];
+          }
         }
       }
     }
-  }
 
-  // --- SEU VETOR DE SOLUÇÕES (Local Array) ---
-  vT my_best_energy = current_energy;
-  unsigned long long my_solutions[MAX_LOCAL_SOLUTIONS];
-  int my_count = 0;
+    // Cache Interactions (Fixed <-> Varying)
+    for (int k = 0; k < n_vary; ++k) {
+      vT interaction = 0;
+      int k_real_idx = k; // Varying bits are 0..n_vary-1
+      for (int j = 0; j < n_fixed_bits; ++j) {
+        if ((fixed_prefix >> j) & 1) {
+          int col = n_vary + j;
+          // Sum interactions
+          interaction += shared_Q[k_real_idx * n + col];
+        }
+      }
+      cached_fixed_interactions[k] = interaction;
+    }
 
-  // Inicializa com o estado atual
-  my_solutions[0] = current_state;
-  my_count = 1;
+    local_min = current_energy;
 
-  // -------------------------------------------------------------------------
-  // 3. Loop Gray Code (Single Pass)
-  // -------------------------------------------------------------------------
-  // Tolerância para float
-  vT epsilon = 1e-5;
+    // Gray Code Loop
+    unsigned long long x_vary = 0;
+    for (unsigned long long i = 1; i < limit; i++) {
+      int k = __ffsll(i) - 1; // Bit index to flip
 
-  for (unsigned long long i = 0; i < num_states_per_thread - 1; ++i) {
-    int flip_bit = (n - 1) - (__ffsll(i + 1) - 1);
+      // 1. Fixed Interaction
+      vT delta = cached_fixed_interactions[k];
+      // 2. Diagonal
+      delta += shared_Q[k * n + k];
 
-    vT delta = shared_Q[flip_bit * n + flip_bit];
-    for (int j = 0; j < n; ++j) {
-      if (j == flip_bit)
-        continue;
-      if ((current_state >> (n - 1 - j)) & 1) {
-        int r = (flip_bit < j) ? flip_bit : j;
-        int c = (flip_bit < j) ? j : flip_bit;
-        delta += shared_Q[r * n + c];
+      // 3. Variable Interaction
+      for (int j = 0; j < n_vary; ++j) {
+        if (j != k && ((x_vary >> j) & 1)) {
+          // Using Sum of both sides Q[k][j] + Q[j][k] to be strictly correct
+          // with full dense matrix energy definition
+          delta += shared_Q[k * n + j];
+        }
+      }
+
+      int sign = ((x_vary >> k) & 1) ? -1 : 1;
+
+      // RE-CALCULATION FOR CONSISTENCY WITH YOUR OLD CODE:
+      delta = cached_fixed_interactions[k]; // Correction attempt
+
+      vT simple_delta = shared_Q[k * n + k]; // Diagonal
+
+      // Interactions with Fixed Bits
+      for (int j = 0; j < n_fixed_bits; ++j) {
+        if ((fixed_prefix >> j) & 1) {
+          simple_delta += shared_Q[k * n + (n_vary + j)];
+        }
+      }
+
+      // Interactions with Variable Bits
+      for (int j = 0; j < n_vary; ++j) {
+        if (j != k && ((x_vary >> j) & 1)) {
+          simple_delta += shared_Q[k * n + j];
+        }
+      }
+
+      current_energy += (sign * simple_delta);
+      x_vary ^= (1ULL << k);
+
+      if (current_energy < local_min) {
+        local_min = current_energy;
       }
     }
+  } // End valid thread
 
-    if ((current_state >> (n - 1 - flip_bit)) & 1) {
-      current_energy -= delta;
-      current_state &= ~(1ULL << (n - 1 - flip_bit));
-    } else {
-      current_energy += delta;
-      current_state |= (1ULL << (n - 1 - flip_bit));
-    }
-
-    // --- LÓGICA DO VETOR DE SOLUÇÕES ---
-    vT diff = current_energy - my_best_energy;
-
-    if (diff < -epsilon) {
-      // ACHOU MELHOR: Zera vetor, atualiza melhor, adiciona novo
-      my_best_energy = current_energy;
-      my_count = 0;
-      my_solutions[my_count++] = current_state;
-    } else if (diff < epsilon && diff > -epsilon) {
-      // ACHOU IGUAL: Adiciona ao vetor (se couber)
-      if (my_count < MAX_LOCAL_SOLUTIONS) {
-        my_solutions[my_count++] = current_state;
-      }
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // 4. Redução por Bloco (Encontrar o melhor do bloco)
-  // -------------------------------------------------------------------------
-  // Usamos shared memory para achar o mínimo entre as 256 threads
-  s_block_min[tid_in_block] = my_best_energy;
+  // 3. Block Reduction
+  s_min_results[tid] = local_min;
   __syncthreads();
 
-  // Redução em árvore clássica
-  for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-    if (tid_in_block < s) {
-      if (s_block_min[tid_in_block + s] < s_block_min[tid_in_block]) {
-        s_block_min[tid_in_block] = s_block_min[tid_in_block + s];
+  for (unsigned int s = dim / 2; s > 0; s >>= 1) {
+    if (tid < s) {
+      if (s_min_results[tid + s] < s_min_results[tid]) {
+        s_min_results[tid] = s_min_results[tid + s];
       }
     }
     __syncthreads();
   }
 
-  // O valor mínimo do bloco agora está em s_block_min[0]
-  vT block_best_val = s_block_min[0];
-
-  // -------------------------------------------------------------------------
-  // 5. Escrita Condicional (Filtro)
-  // -------------------------------------------------------------------------
-  // Só escrevemos se a minha energia for igual à melhor do meu bloco
-  vT diff_block = my_best_energy - block_best_val;
-  if (diff_block < 0)
-    diff_block = -diff_block;
-
-  if (diff_block < epsilon) {
-    // Sou um vencedor local! Escrevo meus estados na memória global.
-    // Reservamos espaço para TODOS os meus estados de uma vez
-    unsigned int start_idx = atomicAdd(found_counter, my_count);
-
-    for (int k = 0; k < my_count; ++k) {
-      if (start_idx + k < max_global_solutions) {
-        found_states_buffer[start_idx + k] = my_solutions[k];
-      }
-    }
-
-    // Opcional: A primeira thread vencedora poderia escrever a energia
-    // em um lugar separado para a CPU saber qual é o valor minímo.
-    // Mas a CPU pode recalcular a energia de qualquer estado retornado.
+  // 4. Global Update
+  if (tid == 0) {
+    gpu_atomic_min(global_min_energy_ptr, s_min_results[0]);
   }
 }
 
-// Instanciação Explícita (Observe os novos parâmetros)
-template __global__ void kernel_brute_force_dense<double>(
-    const double *, int, int, unsigned long long, double *,
-    unsigned long long *, unsigned long long *, unsigned int *, unsigned int);
-template __global__ void kernel_brute_force_dense<float>(
-    const float *, int, int, unsigned long long, float *, unsigned long long *,
-    unsigned long long *, unsigned int *, unsigned int);
+// =============================================================================
+// KERNEL 2: COLLECT SOLUTIONS
+// =============================================================================
+template <typename vT>
+__global__ void kernel_collect_solutions(const vT *__restrict__ global_Q, int n,
+                                         int n_fixed_bits, vT target_energy,
+                                         unsigned long long *solutions_buffer,
+                                         unsigned int *solution_counter,
+                                         unsigned int max_solutions) {
+  extern __shared__ char smem[];
+  vT *shared_Q = reinterpret_cast<vT *>(smem);
+  int tid = threadIdx.x;
+  int bid = blockIdx.x;
+  int dim = blockDim.x;
+
+  int num_elements = n * n;
+  for (int i = tid; i < num_elements; i += dim) {
+    shared_Q[i] = global_Q[i];
+  }
+  __syncthreads();
+
+  unsigned long long global_tid = (unsigned long long)bid * dim + tid;
+  unsigned long long total_patterns = 1ULL << n_fixed_bits;
+
+  // Ghost thread check
+  if (global_tid >= total_patterns)
+    return;
+
+  unsigned long long fixed_prefix = global_tid;
+  int n_vary = n - n_fixed_bits;
+  unsigned long long limit = 1ULL << n_vary;
+
+  // --- REPLICATE EXACT ENERGY LOGIC FROM KERNEL 1 ---
+  vT current_energy = 0;
+
+  // Initial Energy
+  for (int i = 0; i < n_fixed_bits; ++i) {
+    if ((fixed_prefix >> i) & 1) {
+      int row = n_vary + i;
+      current_energy += shared_Q[row * n + row];
+      for (int j = 0; j < i; ++j) {
+        if ((fixed_prefix >> j) & 1) {
+          int col = n_vary + j;
+          current_energy += shared_Q[row * n + col] + shared_Q[col * n + row];
+        }
+      }
+    }
+  }
+
+  // Relaxed Epsilon for float comparisons
+  vT epsilon = 0;
+  if constexpr (!std::is_integral<vT>::value)
+    epsilon = 1e-3;
+
+  // Check Initial
+  if (ABS_DIFF(current_energy, target_energy) <= epsilon) {
+    unsigned int idx = atomicAdd(solution_counter, 1);
+    if (idx < max_solutions) {
+      solutions_buffer[idx] = (fixed_prefix << n_vary);
+    }
+  }
+
+  unsigned long long x_vary = 0;
+  for (unsigned long long i = 1; i < limit; i++) {
+    int k = __ffsll(i) - 1;
+
+    vT simple_delta = shared_Q[k * n + k]; // Diagonal
+
+    // Interactions with Fixed
+    for (int j = 0; j < n_fixed_bits; ++j) {
+      if ((fixed_prefix >> j) & 1) {
+        simple_delta += shared_Q[k * n + (n_vary + j)];
+      }
+    }
+
+    // Interactions with Variable
+    for (int j = 0; j < n_vary; ++j) {
+      if (j != k && ((x_vary >> j) & 1)) {
+        simple_delta += shared_Q[k * n + j];
+      }
+    }
+
+    int sign = ((x_vary >> k) & 1) ? -1 : 1;
+    current_energy += (sign * simple_delta);
+    x_vary ^= (1ULL << k);
+
+    if (ABS_DIFF(current_energy, target_energy) <= epsilon) {
+      unsigned int idx = atomicAdd(solution_counter, 1);
+      if (idx < max_solutions) {
+        solutions_buffer[idx] = (fixed_prefix << n_vary) | x_vary;
+      }
+    }
+  }
+}
+
+// Explicit Instantiations
+template __global__ void kernel_find_min_energy<int>(const int *, int, int,
+                                                     int *);
+template __global__ void kernel_find_min_energy<float>(const float *, int, int,
+                                                       float *);
+template __global__ void kernel_find_min_energy<double>(const double *, int,
+                                                        int, double *);
+
+template __global__ void
+kernel_collect_solutions<int>(const int *, int, int, int, unsigned long long *,
+                              unsigned int *, unsigned int);
+template __global__ void kernel_collect_solutions<float>(const float *, int,
+                                                         int, float,
+                                                         unsigned long long *,
+                                                         unsigned int *,
+                                                         unsigned int);
+template __global__ void kernel_collect_solutions<double>(const double *, int,
+                                                          int, double,
+                                                          unsigned long long *,
+                                                          unsigned int *,
+                                                          unsigned int);
