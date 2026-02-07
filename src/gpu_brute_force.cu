@@ -9,6 +9,8 @@
 // Standardize mapping to avoid fragile indexing
 #define BIT_TO_ROW(bit, n) ((n) - 1 - (bit))
 
+__device__ unsigned int g_match_count;
+
 typedef uint64_t state_t;
 
 
@@ -125,6 +127,59 @@ __global__ void sparse_qubo_kernel(
     output_energies[tid] = min_energy;
 }
 
+template <typename iT, typename vT>
+__global__ void collect_all_optima_sparse_kernel(
+    const vT* values, const iT* columns, const iT* offsets, 
+    size_t n, size_t m, size_t n_sub, 
+    vT global_min_energy, // The energy found in Pass 1
+    state_t* all_best_states, // Pre-allocated buffer for results
+    size_t max_results, // Size of all_best_states to prevent overflow
+    const vT* initial_energies 
+) {
+    uint64_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= (1ULL << m)) return;
+
+    state_t current_state = tid; 
+    vT current_energy = initial_energies[tid];
+    
+    // Lambda or helper to check and save matches
+    auto check_and_save = [&](vT energy, state_t state) {
+        if (std::abs(energy - global_min_energy) < 1e-6) {
+            unsigned int idx = atomicAdd(&g_match_count, 1);
+            if (idx < max_results) {
+                all_best_states[idx] = state;
+            }
+        }
+    };
+
+    // Check the starting state of the thread
+    check_and_save(current_energy, current_state);
+
+    uint64_t limit = 1ULL << n_sub;
+    for (uint64_t k = 1; k < limit; k++) {
+        int local_flip = __ffsll(k) - 1; 
+        int flip_bit = local_flip + m; 
+        int row = BIT_TO_ROW(flip_bit, n);
+
+        vT sign = ((current_state >> flip_bit) & 1ULL) ? -1.0 : 1.0;
+        vT running_sum = 0.0;
+
+        for (iT idx = offsets[row]; idx < offsets[row + 1]; idx++) {
+            int col = columns[idx];
+            int col_bit = n - 1 - col;
+            if (col == row || (current_state >> col_bit) & 1ULL) {
+                running_sum += values[idx];
+            }
+        }
+
+        current_energy += sign * running_sum;
+        current_state ^= (1ULL << flip_bit);
+
+        // Check every single state in the Gray code sequence
+        check_and_save(current_energy, current_state);
+    }
+}
+
 template<typename iT, typename vT, typename sT>
 struct GPUQUBOBruteForcer<iT, vT, sT, SparseMatrix<vT, iT>> : public QUBOBruteForcer<iT, vT, sT, SparseMatrix<vT, iT>>
 {
@@ -174,11 +229,32 @@ struct GPUQUBOBruteForcer<iT, vT, sT, SparseMatrix<vT, iT>> : public QUBOBruteFo
         vT global_min = std::numeric_limits<vT>::max();
         for (vT e : host_energies) if (e < global_min) global_min = e;
 
+        size_t max_res = 1024;
+        state_t *d_all_best_states;
+        CUDA_CALL(cudaMalloc(&d_all_best_states, max_res * sizeof(state_t)));
+
+        // Reset the device counter to 0
+        unsigned int zero = 0;
+        CUDA_CALL(cudaMemcpyToSymbol(g_match_count, &zero, sizeof(unsigned int)));
+
+        // Pass 2: Launch collection kernel
+        collect_all_optima_sparse_kernel<<<numBlocks, blockSize>>>(
+            d_values, d_columns, d_offsets, n, m, remaining,
+            global_min, d_all_best_states, max_res, d_initial_energies
+        );
+
+        // Copy back the total count and the states
+        unsigned int h_match_count;
+        CUDA_CALL(cudaMemcpyFromSymbol(&h_match_count, g_match_count, sizeof(unsigned int)));
+        if (h_match_count > max_res) h_match_count = max_res; // Cap to buffer size
+
+        std::vector<state_t> final_host_states(h_match_count);
+        CUDA_CALL(cudaMemcpy(final_host_states.data(), d_all_best_states, h_match_count * sizeof(state_t), cudaMemcpyDeviceToHost));
+
+        // Now build the results vector for every state in final_host_states
         std::vector<std::vector<sT>> results;
-        for (size_t i = 0; i < num_tasks; i++) {
-            if (std::abs(host_energies[i] - global_min) < 1e-5) {
-                results.push_back(binary_representation_to_state_vector<sT>(host_states[i], n));
-            }
+        for (state_t s : final_host_states) {
+            results.push_back(binary_representation_to_state_vector<sT>(s, n));
         }
 
         // Cleanup
