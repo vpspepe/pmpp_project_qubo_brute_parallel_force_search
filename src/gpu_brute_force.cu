@@ -132,9 +132,12 @@ struct GPUQUBOBruteForcer<iT, vT, sT, SparseMatrix<vT, iT>> : public QUBOBruteFo
         size_t n = mat.rows;
 
         // 1. Logic for Subproblems (Capped at 2^20 tasks to avoid VRAM bloat)
-        size_t m = static_cast<size_t>(n * 0.2);
+        size_t m = 0;
+        if (n > 14) m = n - 14;
+        if (m > 24) m = 24;
+        if (m < 0) m = 0;
         size_t remaining = n - m;
-        if (remaining >= 20) { remaining = 20; m = n - 20; }
+        
         uint64_t num_tasks = 1ULL << m;
 
         // 2. Allocate CSR Matrix on Device
