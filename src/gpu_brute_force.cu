@@ -155,7 +155,7 @@ struct GPUQUBOBruteForcer<iT, vT, sT, SparseMatrix<vT, iT>> : public QUBOBruteFo
         CUDA_CALL(cudaMalloc(&d_output_energies, num_tasks * sizeof(vT)));
         CUDA_CALL(cudaMalloc(&d_initial_energies, num_tasks * sizeof(vT)));
 
-        int blockSize = 256;
+        int blockSize = 32;
         uint64_t numBlocks = (num_tasks + blockSize - 1) / blockSize;
 
         // 4. Step 1: Analytical Initialization
