@@ -10,7 +10,7 @@ ssh vp51huji@lcluster19.hrz.tu-darmstadt.de << 'EOF'
     mkdir build
     module load cuda/12.5 gcc/13.1.0
     cd build
-    cmake -DCMAKE_BUILD_TYPE=Release -DWITH_PRODUCTION_COMPILATION=ON ../src
+    cmake -DCMAKE_BUILD_TYPE=Release  ../src
     make -j8
     cd ..
     rm out.txt
