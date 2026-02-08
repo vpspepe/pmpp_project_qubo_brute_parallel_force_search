@@ -1,0 +1,369 @@
+==PROF== Connected to process 2132243 (/work/home/kurse/kurs00091/la75posi/pmpp_project_qubo_brute_parallel_force_search/build/QUBOBruteForcing)
+#0: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#1: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#2: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#3: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_25.mtx
+
+Matrix: 25 x 25 with 625 non-zeros read from ./data_dense/one_hot_encoding_25.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 3514.86 milliseconds
+
+
+**GPU: 
+
+DEBUG: Starting GPU Two-Pass Optimization...
+DEBUG: m is 14
+DEBUG: total_threads is 16384
+DEBUG: grid_size is 512
+==PROF== Profiling "kernel_find_min_energy" - 0: 0%....50%....100% - 36 passes
+==PROF== Profiling "kernel_collect_solutions" - 1: 0%....50%....100% - 36 passes
+DEBUG: Solutions found: 25
+DEBUG: Time taken for memory initialization: 0.039935 ms
+DEBUG: Time taken for running kernel: 806.1 ms
+DEBUG: Time taken for getting last error: 0.005151 ms
+DEBUG: Time taken for synchrnization: 0.016038 ms
+DEBUG: Time taken for finding all solutions: 806.161 ms
+Time for GPU dense Brute-force optimization: 2168.29 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+10: 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+11: 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+12: 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+13: 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+14: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 Energy: -1
+15: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 Energy: -1
+16: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 Energy: -1
+17: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 Energy: -1
+18: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 Energy: -1
+19: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 Energy: -1
+20: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 Energy: -1
+21: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 Energy: -1
+22: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 Energy: -1
+23: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 Energy: -1
+24: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 Energy: -1
+1: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+2: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 Energy: -1
+3: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 Energy: -1
+4: 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 Energy: -1
+10: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 Energy: -1
+11: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 Energy: -1
+12: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 Energy: -1
+13: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 Energy: -1
+14: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+15: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+16: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+17: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+18: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+19: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+20: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+21: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+22: 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+23: 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+24: 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 25 / 25 CPU results 
+#################################################################
+
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_10.mtx
+
+Matrix: 10 x 10 with 100 non-zeros read from ./data_dense/one_hot_encoding_10.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 0.070129 milliseconds
+
+
+**GPU: 
+
+DEBUG: Starting GPU Two-Pass Optimization...
+DEBUG: m is 9
+DEBUG: total_threads is 512
+DEBUG: grid_size is 16
+==PROF== Profiling "kernel_find_min_energy" - 2: 0%....50%....100% - 35 passes
+==PROF== Profiling "kernel_collect_solutions" - 3: 0%....50%....100% - 35 passes
+DEBUG: Solutions found: 10
+DEBUG: Time taken for memory initialization: 0.00829 ms
+DEBUG: Time taken for running kernel: 342.548 ms
+DEBUG: Time taken for getting last error: 0.006391 ms
+DEBUG: Time taken for synchrnization: 0.029288 ms
+DEBUG: Time taken for finding all solutions: 342.592 ms
+Time for GPU dense Brute-force optimization: 688.278 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 1 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 0 1 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 0 1 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 0 1 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 0 1 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 0 0 0 1 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 0 0 1 Energy: -1
+8: 0 0 0 0 0 0 0 1 0 0 Energy: -1
+9: 1 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 10 / 10 CPU results 
+#################################################################
+
+==PROF== Disconnected from process 2132243
+==PROF== Report: /work/home/kurse/kurs00091/la75posi/pmpp_project_qubo_brute_parallel_force_search/out/profiling.ncu-rep
+out/
+out/profiling.ncu-rep
+#0: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#1: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#2: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#3: Tesla V100-PCIE-32GB
+	SMs: 80
+	shadermodel: 7.0
+	global mem: 34072559616
+	maxThreadsPerSM: 2048
+	threadsPerBlock: 1024
+	regsPerSM: 65536
+	maxThreads: 163840
+	regsPerThreadWith1024Threads: 64
+	maxBlocksWith1024Threads: 160
+	sharedMemPerSM: 98304
+	sharedMemPerBlock: 49152
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_25.mtx
+
+Matrix: 25 x 25 with 625 non-zeros read from ./data_dense/one_hot_encoding_25.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 3507.64 milliseconds
+
+
+**GPU: 
+
+DEBUG: Starting GPU Two-Pass Optimization...
+DEBUG: m is 14
+DEBUG: total_threads is 16384
+DEBUG: grid_size is 512
+DEBUG: Solutions found: 25
+DEBUG: Time taken for memory initialization: 0.010977 ms
+DEBUG: Time taken for running kernel: 0.039423 ms
+DEBUG: Time taken for getting last error: 0.000214 ms
+DEBUG: Time taken for synchrnization: 2.0215 ms
+DEBUG: Time taken for finding all solutions: 2.07212 ms
+Time for GPU dense Brute-force optimization: 6.48554 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+10: 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+11: 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+12: 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+13: 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+14: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 Energy: -1
+15: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 Energy: -1
+16: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 Energy: -1
+17: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 Energy: -1
+18: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 Energy: -1
+19: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 Energy: -1
+20: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 Energy: -1
+21: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 Energy: -1
+22: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 Energy: -1
+23: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 Energy: -1
+24: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 Energy: -1
+1: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 Energy: -1
+2: 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 Energy: -1
+10: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 Energy: -1
+11: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 Energy: -1
+12: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 Energy: -1
+13: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 Energy: -1
+14: 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+15: 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+16: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+17: 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+18: 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+19: 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+20: 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+21: 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+22: 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+23: 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+24: 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 25 / 25 CPU results 
+#################################################################
+
+#################################################################
+Matrix: ./data_dense/one_hot_encoding_10.mtx
+
+Matrix: 10 x 10 with 100 non-zeros read from ./data_dense/one_hot_encoding_10.mtx
+**CPU: 
+
+CPU using 1 threads
+Elapsed time for Dense Brute-force optimization: 0.066444 milliseconds
+
+
+**GPU: 
+
+DEBUG: Starting GPU Two-Pass Optimization...
+DEBUG: m is 9
+DEBUG: total_threads is 512
+DEBUG: grid_size is 16
+DEBUG: Solutions found: 10
+DEBUG: Time taken for memory initialization: 0.003211 ms
+DEBUG: Time taken for running kernel: 0.003978 ms
+DEBUG: Time taken for getting last error: 0.000135 ms
+DEBUG: Time taken for synchrnization: 0.008782 ms
+DEBUG: Time taken for finding all solutions: 0.016106 ms
+Time for GPU dense Brute-force optimization: 0.671648 ms
+CPU Optimal states: 
+0: 1 0 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 1 0 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 1 0 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 1 0 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 1 0 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 1 0 0 0 0 Energy: -1
+6: 0 0 0 0 0 0 1 0 0 0 Energy: -1
+7: 0 0 0 0 0 0 0 1 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 0 1 0 Energy: -1
+9: 0 0 0 0 0 0 0 0 0 1 Energy: -1
+
+GPU Optimal states: 
+0: 0 1 0 0 0 0 0 0 0 0 Energy: -1
+1: 0 0 1 0 0 0 0 0 0 0 Energy: -1
+2: 0 0 0 1 0 0 0 0 0 0 Energy: -1
+3: 0 0 0 0 1 0 0 0 0 0 Energy: -1
+4: 0 0 0 0 0 1 0 0 0 0 Energy: -1
+5: 0 0 0 0 0 0 0 0 1 0 Energy: -1
+6: 0 0 0 0 0 0 0 0 0 1 Energy: -1
+7: 0 0 0 0 0 0 1 0 0 0 Energy: -1
+8: 0 0 0 0 0 0 0 1 0 0 Energy: -1
+9: 1 0 0 0 0 0 0 0 0 0 Energy: -1
+
+Number of identical states found on CPU and GPU: 10 / 10 CPU results 
+#################################################################
+
+Lmod: unloading gcc 13.1.0 
+Lmod: unloading cuda 12.5 
+Lmod: loading cuda 12.5 
+Lmod: loading gcc 13.1.0 

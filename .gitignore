@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Prerequisites
 *.d
 
@@ -33,3 +34,11 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+=======
+build/
+dense.err
+dense.out
+*.vim
+compile_commands.json
+.cache/
+>>>>>>> origin/feature/dense_2step
