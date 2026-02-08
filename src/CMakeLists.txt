@@ -24,30 +24,34 @@ if(WITH_OPENMP)
 endif()
 
 if(WITH_ACTIVATE_CUDA_COMPILATION_INFO)
-  set(custom_flags "${custom_flags} -Xptxas -v")
+  set(custom_flags "${custom_flags} -lineinfo -Xptxas -v")
 endif()
 
 if(UNIX)
   set(CMAKE_POSITION_INDEPENDENT_CODE ON) # -fPIC compile option
 endif()
 
-if(WITH_PRODUCTION_COMPILATION)
-  set(WITH_PROFILING OFF)
-  set(Architectures "50;61-real;75-real;80;86-real;89-real;90")
-else()
-  set(Architectures "native")
-endif()
-
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES ${Architectures})
-endif()
+# if(WITH_PRODUCTION_COMPILATION)
+#   set(WITH_PROFILING OFF)
+#   set(Architectures "50;61-real;75-real;80;86-real;89-real;90")
+# else()
+#   set(Architectures "native")
+# endif()
+#
+# if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+#   set(CMAKE_CUDA_ARCHITECTURES ${Architectures})
+# endif()
 if(WITH_PROFILING)
-  set(custom_flags "${custom_flags} --generate-line-info ")
+  set(custom_flags "${custom_flags} -lineinfo ")
 endif()
 
 if(WITH_DEBUG_COMPILATION_CUDA)
   set(custom_flags "${custom_flags} -g -G")
-  target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG)
+  target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+    DEBUG
+    $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>
+  )
 endif()
 
 message(STATUS "NVCC Flags: ${custom_flags}")
@@ -73,9 +77,9 @@ add_executable(
   state_vector.h
   timer.h)
 
-message(STATUS "CUDA Architectures: ${Architectures}")
-set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES
-                                                 "${Architectures}")
+# message(STATUS "CUDA Architectures: ${Architectures}")
+# set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES
+#                                                  "${Architectures}")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE CUDA::cudart)
 
