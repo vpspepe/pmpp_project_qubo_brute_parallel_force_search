@@ -1,3 +1,5 @@
+CAMINHO DO ARQUIVO: ./main.cpp
+
 #include "cpu_brute_force.h"
 #include "cuda_debug.h"
 #include "cuda_timer.h"
@@ -155,3 +157,6 @@ int main() {
 
   return 0;
 }
+
+---------------------
+

@@ -1,0 +1,6 @@
+build/
+dense.err
+dense.out
+*.vim
+compile_commands.json
+.cache/

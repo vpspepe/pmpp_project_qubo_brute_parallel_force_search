@@ -1,0 +1,903 @@
+CAMINHO DO ARQUIVO: ./src/cuda_timer.h
+
+#pragma once
+#include "cuda_util.h"
+#include <iostream>
+#include <string>
+#include <vector>
+
+class CudaTimer {
+public:
+  CudaTimer(CudaTimer &t) = delete;
+  CudaTimer() {}
+  CudaTimer(std::string name, bool blocking = false,
+            cudaStream_t stream = nullptr)
+      : name(name), stream(stream) {
+    if (blocking) {
+      CUDA_CALL(cudaEventCreateWithFlags(&begin, cudaEventBlockingSync));
+      CUDA_CALL(cudaEventCreateWithFlags(&end, cudaEventBlockingSync));
+    } else {
+      CUDA_CALL(cudaEventCreate(&begin));
+      CUDA_CALL(cudaEventCreate(&end));
+    }
+
+    start();
+  }
+  ~CudaTimer() {
+    if (!stopped)
+      stop();
+  }
+  inline void start() {
+    stopped = false;
+    CUDA_CALL(cudaEventRecord(begin, stream));
+  }
+  inline void stop() {
+    if (!stopped) {
+      CUDA_CALL(cudaEventRecord(end, stream));
+    }
+    stopped = true;
+  }
+  inline float wait_for_time() {
+    float time;
+    CUDA_CALL(cudaEventSynchronize(end));
+    bool success = CUDA_CALL(cudaEventElapsedTime(&time, begin, end));
+    if (!success)
+      time = -1.f;
+
+    std::cout << "Time for " << name << ": " << time << " ms\n";
+    return time;
+  }
+  inline void start_new(std::string new_name) {
+    stop();
+    this->name = new_name;
+    start();
+  }
+  inline std::string get_name() { return name; }
+
+private:
+  std::string name;
+  cudaStream_t stream = nullptr;
+  cudaEvent_t begin = nullptr, end = nullptr;
+
+  bool stopped = true, blocking = false;
+};
+
+class CudaTimerManager {
+public:
+  void add(CudaTimer &timer) {
+    timers.push_back(&timer);
+    names.push_back(timer.get_name());
+  }
+
+  void wait_and_print_all() {
+    for (auto &t : timers) {
+      results.push_back(t->wait_for_time());
+    }
+  }
+  std::vector<std::string> names;
+  std::vector<float> results;
+
+private:
+  std::vector<CudaTimer *> timers;
+};
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/cuda_util.h
+
+#pragma once
+#include <cassert>
+#include <cuda_runtime_api.h>
+#include <iostream>
+
+#define divRND(a, b) ((a + b - 1) / (b))
+
+#define CUDA_CALL(code) check_cuda_error((code), __FILE__, __LINE__)
+
+inline bool check_cuda_error(cudaError_t code, const char *file, int line) {
+#ifdef DEBUG // check error code again after synchronizing in DEBUG mode
+  if (code == cudaSuccess) {
+    return check_cuda_error(cudaDeviceSynchronize(), file, line);
+  }
+#endif // DEBUG
+
+  if (code != cudaSuccess) {
+    std::cout << "CUDA Error: " << cudaGetErrorName(code) << " @ " << file
+              << ":" << line << "\n";
+    assert(false);
+    return false;
+  }
+  return true;
+}
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/cuda_debug.h
+
+#pragma once
+#include "cuda_util.h"
+#include <string>
+#include <vector>
+
+struct gpu_info {
+  int id = -1;
+  std::string name;
+  size_t totalGlobalMem;
+  size_t sharedMemPerBlock;
+  int regsPerBlock;
+  int warpSize;
+  int maxThreadsPerBlock;
+  int major;
+  int minor;
+  int multiProcessorCount;
+  int l2CacheSize;
+  int persistingL2CacheMaxSize;
+  int maxThreadsPerMultiProcessor;
+  size_t sharedMemPerMultiprocessor;
+  int regsPerMultiprocessor;
+  int regsPerThread;
+  int maxThreads;
+  int blocks;
+};
+
+inline std::vector<gpu_info> get_gpu_info() {
+  int num_gpus;
+  CUDA_CALL(cudaGetDeviceCount(&num_gpus));
+  std::vector<gpu_info> gpus(num_gpus);
+  for (int i = 0; i < num_gpus; i++) {
+    cudaDeviceProp p;
+    CUDA_CALL(cudaGetDeviceProperties(&p, i));
+    gpu_info gpu;
+    gpu.id = i;
+    gpu.name = p.name;
+    gpu.totalGlobalMem = p.totalGlobalMem;
+    gpu.sharedMemPerBlock = p.sharedMemPerBlock;
+    gpu.regsPerBlock = p.regsPerBlock;
+    gpu.warpSize = p.warpSize;
+    gpu.maxThreadsPerBlock = p.maxThreadsPerBlock;
+    gpu.major = p.major;
+    gpu.minor = p.minor;
+    gpu.multiProcessorCount = p.multiProcessorCount;
+    gpu.l2CacheSize = p.l2CacheSize;
+    gpu.persistingL2CacheMaxSize = p.persistingL2CacheMaxSize;
+    gpu.maxThreadsPerMultiProcessor = p.maxThreadsPerMultiProcessor;
+    gpu.sharedMemPerMultiprocessor = p.sharedMemPerMultiprocessor;
+    gpu.regsPerMultiprocessor = p.regsPerMultiprocessor;
+    gpu.regsPerThread = gpu.regsPerMultiprocessor / gpu.maxThreadsPerBlock;
+    gpu.maxThreads = gpu.maxThreadsPerMultiProcessor * gpu.multiProcessorCount;
+    gpu.blocks = (gpu.maxThreadsPerMultiProcessor / gpu.maxThreadsPerBlock) *
+                 gpu.multiProcessorCount;
+    gpus[i] = gpu;
+  }
+  return gpus;
+}
+
+inline void print_gpu_info(gpu_info const &gpu) {
+  std::cout << "#" << gpu.id << ": " << gpu.name
+            << "\n\tSMs: " << gpu.multiProcessorCount
+            << "\n\tshadermodel: " << gpu.major << "." << gpu.minor
+            << "\n\tglobal mem: " << gpu.totalGlobalMem
+            << "\n\tmaxThreadsPerSM: " << gpu.maxThreadsPerMultiProcessor
+            << "\n\tthreadsPerBlock: " << gpu.maxThreadsPerBlock
+            << "\n\tregsPerSM: " << gpu.regsPerMultiprocessor
+            << "\n\tmaxThreads: " << gpu.maxThreads
+            << "\n\tregsPerThreadWith1024Threads: " << gpu.regsPerThread
+            << "\n\tmaxBlocksWith1024Threads: " << gpu.blocks
+            << "\n\tsharedMemPerSM: " << gpu.sharedMemPerMultiprocessor
+            << "\n\tsharedMemPerBlock: " << gpu.sharedMemPerBlock << "\n";
+}
+inline void print_gpu_info(std::vector<gpu_info> const &gpus) {
+  for (auto const &gpu : gpus)
+    print_gpu_info(gpu);
+}
+
+template <typename T> inline std::vector<T> copy_to_cpu(T const *data, int n) {
+  std::vector<T> cpu(n);
+  CUDA_CALL(
+      cudaMemcpy(cpu.data(), data, sizeof(T) * n, cudaMemcpyDeviceToHost));
+  return cpu;
+}
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/timer.h
+
+#pragma once
+#include <chrono>
+#include <iostream>
+#include <string>
+
+// Use steady_clock for stable interval measurement
+class Timer {
+public:
+  Timer(std::string name)
+      : start_time(std::chrono::steady_clock::now()), timer_name(name) {}
+
+  double stop() {
+    auto end_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double, std::milli> duration = end_time - start_time;
+    std::cout << "Elapsed time for " << timer_name << ": " << duration.count()
+              << " milliseconds\n";
+    return duration.count();
+  }
+
+  ~Timer() { stop(); }
+
+private:
+  std::chrono::steady_clock::time_point start_time;
+  std::string timer_name;
+};
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/gpu_brute_force.h
+
+#pragma once
+
+#include "matrix.h"
+#include "qubo_brute_forcer.h"
+#include <stdexcept>
+
+/****************************************
+ * DO NOT CHANGE THIS FILE               *
+ * USE THE INTERFACE AS IS!              *
+ * IMPLEMENTATION IN gpu_brute_force.cu  *
+ ****************************************/
+
+/**
+ * iT: index type
+ * vT: value type
+ * sT: state type
+ * MatrixType: matrix type (DenseMatrix<vT> or SparseMatrix<vT, i
+ * GPU implementation of the QUBO brute forcer that uses incremental energy
+ * updates, based on
+ */
+template <typename iT, typename vT, typename sT, typename MatrixType>
+struct GPUQUBOBruteForcer : public QUBOBruteForcer<iT, vT, sT, MatrixType> {
+  /// Brute force search for optimal states of the QUBO problem represented by
+  /// the matrix. DO NOT CHANGE!
+  std::vector<std::vector<sT>>
+  brute_force_optima(MatrixType const &mat) override;
+};
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/state_vector.h
+
+#pragma once
+#include <cstddef>
+#include <type_traits>
+#include <vector>
+
+template <typename sT>
+size_t
+state_vector_to_binary_reprensentation(std::vector<sT> const &state_vector) {
+  size_t state = 0ULL;
+  size_t n = state_vector.size();
+  for (size_t i = 0; i < n; i++) {
+    state |= static_cast<size_t>(state_vector[i]) << (n - 1ULL - i);
+  }
+  return state;
+}
+
+template <typename sT>
+std::vector<sT> binary_representation_to_state_vector(size_t state, size_t n) {
+  std::vector<sT> state_vector(n, 0);
+  for (size_t i = 0; i < n; i++) {
+    state_vector[i] = static_cast<sT>((state >> (n - i - 1ULL)) & 1ULL);
+  }
+  return state_vector;
+}
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/qubo_brute_forcer.h
+
+#pragma once
+
+#include "matrix.h"
+#include <vector>
+/**
+ * QUBO Brute Forcer
+ * iT: index type
+ * vT: value type
+ * sT: state type
+ * MatrixType: matrix type (DenseMatrix<vT> or SparseMatrix<vT, iT>)
+ */
+template <typename iT, typename vT, typename sT, typename MatrixType>
+struct QUBOBruteForcer {
+  /**
+   * Brute force search for optimal states of the QUBO problem represented by
+   * the matrix.
+   * @param mat The QUBO matrix, stored on the CPU
+   * @return A vector of vectors containing the optimal states.
+   */
+  virtual std::vector<std::vector<sT>>
+  brute_force_optima(MatrixType const &mat) = 0;
+};
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/matrix.h
+
+#pragma once
+#include <cstddef>
+#include <utility>
+
+// Dense matrix row-major format
+template <typename T> struct DenseMatrix {
+
+  DenseMatrix(size_t r, size_t c) : rows(r), cols(c) {
+    data = new T[rows * cols];
+  }
+
+  ~DenseMatrix() { delete[] data; }
+
+  void set_zero() {
+
+    for (size_t r = 0; r < rows; r++) {
+      for (size_t c = 0; c < rows; c++) {
+        at(r, c) = T(0);
+      }
+    }
+  }
+
+  T &at(size_t r, size_t c) { return data[r * cols + c]; }
+
+  size_t rows, cols;
+  T *data;
+};
+
+// Sparse matrix in CSR format (row-major)
+template <typename vT, typename iT> struct SparseMatrix {
+  SparseMatrix(size_t r, size_t c) : rows(r), cols(c) {}
+
+  SparseMatrix(SparseMatrix<vT, iT> &&mat) {
+    rows = mat.rows;
+    cols = mat.cols;
+    nnz = mat.nnz;
+    std::swap(values, mat.values);
+    std::swap(offsets, mat.offsets);
+    std::swap(columns, mat.columns);
+  }
+
+  SparseMatrix &operator=(SparseMatrix &&mat) {
+    rows = mat.rows;
+    cols = mat.cols;
+    nnz = mat.nnz;
+    std::swap(values, mat.values);
+    std::swap(offsets, mat.offsets);
+    std::swap(columns, mat.columns);
+    return *this;
+  }
+
+  SparseMatrix(const SparseMatrix &) = delete;
+  SparseMatrix &operator=(const SparseMatrix &) = delete;
+
+  void allocate(size_t nonZeros) {
+    nnz = nonZeros;
+    values = new vT[nnz];
+    offsets = new iT[rows + 1];
+    columns = new iT[nnz];
+  }
+
+  ~SparseMatrix() {
+    if (values)
+      delete[] values;
+    if (offsets)
+      delete[] offsets;
+    if (columns)
+      delete[] columns;
+  }
+
+  size_t rows, cols, nnz;
+  vT *values = nullptr;
+  iT *offsets = nullptr;
+  iT *columns = nullptr;
+};
+
+template <typename vT, typename iT>
+DenseMatrix<vT> sparse_to_dense(const SparseMatrix<vT, iT> &sparse) {
+  DenseMatrix<vT> dense(sparse.rows, sparse.cols);
+  dense.set_zero();
+  for (size_t r = 0; r < sparse.rows; r++) {
+    for (iT idx = sparse.offsets[r]; idx < sparse.offsets[r + 1]; idx++) {
+      iT c = sparse.columns[idx];
+      dense.at(r, c) = sparse.values[idx];
+    }
+  }
+  return dense;
+}
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/qubo_energy.h
+
+#pragma once
+#include "matrix.h"
+
+#include <cassert>
+
+/// calculate state[row] * state[col] for binary variables
+template <typename vT, typename iT>
+inline vT get_state_entry_product(size_t state, size_t n, iT row, iT col) {
+  size_t row_idx = n - 1ULL - static_cast<size_t>(row);
+  size_t col_idx = n - 1ULL - static_cast<size_t>(col);
+  return static_cast<vT>(((state >> row_idx) & 1ULL) &
+                         ((state >> col_idx) & 1ULL));
+}
+
+/// Compute the energy of a given state for a QUBO problem represented by a
+/// matrix with an array of binary variables
+template <typename vT, typename iT, typename sT>
+vT compute_energy(SparseMatrix<vT, iT> const &mat, const sT *state) {
+  assert(mat.rows == mat.cols); // energy computation only for square matrices
+  vT energy = 0;
+  for (iT row = 0; row < mat.rows; row++) {
+    for (iT idx = mat.offsets[row]; idx < mat.offsets[row + 1]; idx++) {
+      iT col = mat.columns[idx];
+      vT value = mat.values[idx];
+      if (col >= row) // to avoid double counting in symmetric matrices
+        energy += value * (state[row] * state[col]);
+    }
+  }
+  return energy;
+}
+
+/// Compute the energy of a given state for a QUBO problem represented by a
+/// matrix with binary variables encoded in a size_t
+template <typename vT, typename iT>
+vT compute_energy(SparseMatrix<vT, iT> const &mat, size_t state) {
+  assert(mat.rows == mat.cols); // energy computation only for square matrices
+  assert(mat.rows <= 64);
+  vT energy = 0;
+  for (iT row = 0; row < mat.rows; row++) {
+    iT first = mat.offsets[row];
+    iT last = mat.offsets[row + 1];
+    for (iT idx = first; idx < last; idx++) {
+      iT col = mat.columns[idx];
+      vT value = mat.values[idx];
+      if (col >= row) // to avoid double counting in symmetric matrices
+        energy +=
+            value * get_state_entry_product<vT>(state, mat.rows, row, col);
+    }
+  }
+  return energy;
+}
+
+/// Compute the energy of a given state for a QUBO problem represented by a
+/// dense matrix with an array of binary variables
+template <typename vT, typename sT>
+vT compute_energy(DenseMatrix<vT> const &mat, const sT *state) {
+  assert(mat.rows == mat.cols); // energy computation only for square matrices
+  vT energy = 0;
+  for (size_t row = 0; row < mat.rows; row++) {
+    for (size_t col = row; col < mat.cols; col++) {
+      energy += mat.data[row * mat.cols + col] * (state[row] * state[col]);
+    }
+  }
+  return energy;
+}
+
+/// Compute the energy of a given state for a QUBO problem represented by a
+/// dense matrix with binary variables encoded in a size_t
+template <typename vT>
+vT compute_energy(DenseMatrix<vT> const &mat, size_t state) {
+  assert(mat.rows == mat.cols); // energy computation only for square matrices
+  assert(mat.rows <= 64);
+  vT energy = 0;
+  for (size_t row = 0; row < mat.rows; row++) {
+    for (size_t col = row; col < mat.cols; col++) {
+      energy += mat.data[row * mat.cols + col] *
+                get_state_entry_product<vT>(state, mat.rows, row, col);
+    }
+  }
+  return energy;
+}
+
+/// Compute the energy difference for a certain row when flipping the row-th bit
+/// in the state for a QUBO problem represented by a dense matrix
+template <typename vT>
+vT compute_row_flip_energy_difference(DenseMatrix<vT> const &mat, size_t state,
+                                      size_t row) {
+  assert(mat.rows == mat.cols); // energy computation only for square matrices
+  assert(mat.rows <= 64);
+  size_t row_idx = (mat.rows - 1ULL - row);
+  size_t bit = (state >> row_idx) & 1ULL;
+  size_t flipped = 1ULL - bit;
+  int change = flipped - bit;
+
+  vT energy_diff = 0;
+  for (size_t col = 0; col < mat.cols; col++) {
+    int idx = row * mat.cols + col;
+    size_t col_idx = (mat.rows - 1ULL - col);
+    energy_diff += mat.data[idx] * static_cast<vT>((state >> col_idx) &
+                                                   1ULL); // value * state[col]
+  }
+
+  energy_diff += mat.data[row * mat.cols + row] * static_cast<vT>(flipped);
+  energy_diff *= static_cast<vT>(change);
+
+  return energy_diff;
+}
+
+/// Compute the energy difference for a certain row when flipping the row-th bit
+/// in the state for a QUBO problem represented by a dense matrix
+template <typename vT, typename iT>
+vT compute_row_flip_energy_difference(SparseMatrix<vT, iT> const &mat,
+                                      size_t state, size_t row) {
+  assert(mat.rows == mat.cols); // energy computation only for square matrices
+  assert(mat.rows <= 64);
+  size_t row_idx = (mat.rows - 1ULL - row);
+  size_t bit = (state >> row_idx) & 1ULL;
+  size_t flipped = 1ULL - bit;
+  int change = flipped - bit;
+
+  vT energy_diff = 0;
+
+  iT first = mat.offsets[row];
+  iT last = mat.offsets[row + 1];
+  int diag_idx = -1;
+
+  for (iT idx = first; idx < last; idx++) {
+    auto const &col = mat.columns[idx];
+    size_t col_idx = (mat.rows - 1ULL - col);
+    energy_diff +=
+        mat.values[idx] *
+        static_cast<vT>((state >> col_idx) & 1ULL); // value * state[col]
+    if (row == col)
+      diag_idx = idx;
+  }
+
+  if (diag_idx != -1)
+    energy_diff += mat.values[diag_idx] * static_cast<vT>(flipped);
+  energy_diff *= static_cast<vT>(change);
+
+  return energy_diff;
+}
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/kernel.h
+
+#pragma once
+#include <cuda_runtime.h>
+
+// Dense Kernel Declaration
+template <typename vT>
+__global__ void
+kernel_brute_force_dense(const vT *global_Q, int n, int n_fixed_bits,
+                         unsigned long long num_states_per_thread,
+                         vT *global_best_energy,
+                         unsigned long long *global_best_state,
+                         unsigned long long *found_states_buffer, // NOVO
+                         unsigned int *found_counter,             // NOVO
+                         unsigned int max_global_solutions        // NOVO
+);
+// Sparse Kernel Declaration
+template <typename vT, typename iT>
+__global__ void kernel_brute_force_sparse(
+    const vT *values, const iT *offsets, const iT *columns, int n,
+    int n_fixed_bits, unsigned long long num_states_per_thread,
+    vT *global_best_energy, unsigned long long *global_best_state);
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/cpu_brute_force.h
+
+#pragma once
+#include "matrix.h"
+#include "qubo_brute_forcer.h"
+#include "qubo_energy.h"
+#include "state_vector.h"
+
+#include <bit>
+#include <iostream>
+#include <limits>
+#include <vector>
+
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
+#define MAX_VARS_BRUTE_FORCE 63
+
+/**
+ * Naive CPU implementation of the QUBO brute forcer that calculates the energy
+ * of every possible state from scratch
+ */
+template <typename iT, typename vT, typename sT, typename MatrixType>
+struct NaiveCPUQUBOBruteForcer
+    : public QUBOBruteForcer<iT, vT, sT, MatrixType> {
+
+  std::vector<std::vector<sT>>
+  brute_force_optima(MatrixType const &mat) override {
+    assert(mat.rows == mat.cols); // only for square matrices
+    assert(mat.rows <=
+           MAX_VARS_BRUTE_FORCE); // limit to 63 variables for brute-force
+    size_t n = mat.rows;
+    long long num_states = 1ULL << n; // 2^n possible states
+    std::vector<std::vector<sT>> best_states;
+    vT best_energy = std::numeric_limits<vT>::max();
+
+    std::cout << "Starting naive brute-force search over " << num_states
+              << " states for " << n << " variables.\n";
+#pragma omp parallel
+    {
+      std::vector<std::vector<sT>> local_best_states;
+      vT local_best_energy = std::numeric_limits<vT>::max();
+#pragma omp for
+      for (long long state = 0; state < num_states; state++) {
+        sT current_state[MAX_VARS_BRUTE_FORCE];
+        for (size_t i = 0; i < n; i++) {
+          current_state[i] =
+              ((static_cast<size_t>(state) >> (n - 1ULL - i)) & 1ULL) ? 1 : 0;
+        }
+        vT energy = compute_energy(mat, current_state);
+        if (energy < local_best_energy) {
+          local_best_energy = energy;
+          local_best_states.clear();
+          local_best_states.emplace_back(current_state, current_state + n);
+        } else if (energy == local_best_energy) {
+          local_best_states.emplace_back(current_state, current_state + n);
+        }
+      }
+#pragma omp critical
+      {
+        if (local_best_energy < best_energy) {
+          best_energy = local_best_energy;
+          best_states.clear();
+          best_states = std::move(local_best_states);
+        } else if (local_best_energy == best_energy) {
+          best_states.insert(best_states.end(), local_best_states.begin(),
+                             local_best_states.end());
+        }
+      }
+    }
+    return best_states;
+  }
+};
+
+/// CPU implementation of the QUBO brute forcer that uses incremental energy
+/// updates, based on https://arxiv.org/pdf/2310.19373
+template <typename iT, typename vT, typename sT, typename MatrixType>
+struct CPUQUBOBruteForcer : public QUBOBruteForcer<iT, vT, sT, MatrixType> {
+
+  std::vector<std::vector<sT>>
+  brute_force_optima(MatrixType const &mat) override {
+    assert(mat.rows == mat.cols);             // only for square matrices
+    assert(mat.rows <= MAX_VARS_BRUTE_FORCE); // limit variables for brute-force
+
+    size_t n = mat.rows;
+    size_t num_states = 1ULL << n; // 2^n possible states
+
+    // find largest power of two less than or equal to max_num_threads
+    size_t num_threads = 1;
+    size_t num_fixed_bits = 0;
+
+#ifdef WITH_OPENMP
+    size_t max_num_threads = omp_get_max_threads();
+
+    while (num_threads * 2 <= max_num_threads && num_fixed_bits < n) {
+      num_threads *= 2;
+      num_fixed_bits += 1;
+    }
+#endif
+
+    std::cout << "CPU using " << num_threads << " threads\n";
+    size_t num_states_per_thread = num_states >> num_fixed_bits;
+
+    // storage for best states and best energy
+    std::vector<size_t> best_states;
+    std::vector<std::vector<sT>> best_states_reconstructed;
+    vT best_energy = std::numeric_limits<vT>::max();
+
+// parallel region with fixed number of threads
+#pragma omp parallel num_threads(num_threads)
+    {
+#ifdef WITH_OPENMP
+      size_t thread = omp_get_thread_num();
+#else
+      size_t thread = 0;
+#endif
+
+      // each thread keeps track of its local best states and energy
+      std::vector<size_t> local_best_states;
+
+      // fix the first num_fixed_bits according to thread id
+      size_t initial_state = thread << (n - num_fixed_bits);
+
+      // current state and energy of the thread, each bit represents a variable
+      size_t state = initial_state;
+      vT energy = compute_energy(mat, initial_state);
+
+      // best energy and state found by the thread
+      vT local_best_energy = energy;
+      local_best_states.push_back(initial_state);
+
+      // iterate over all states assigned to this thread
+      for (size_t i = 0; i < num_states_per_thread - 1; i++) {
+        // find index of bit to flip
+        size_t flip_idx =
+            num_fixed_bits + std::countr_zero(static_cast<size_t>(i + 1));
+
+        // compute energy difference by flipping bit at flip_idx. Calculate the
+        // new energy for this row since its the only on affected
+        vT energy_diff =
+            compute_row_flip_energy_difference(mat, state, flip_idx);
+        // flip the bit in the state
+        state = state ^ (1ULL << (n - 1ULL - flip_idx));
+
+        // update energy
+        energy += energy_diff;
+        // check for new best energy
+        if (energy_diff > vT(0))
+          continue;
+        else if (energy <= local_best_energy) {
+          if (energy < local_best_energy)
+            local_best_states.clear();
+
+          local_best_states.push_back(state);
+
+          if (energy < local_best_energy)
+            local_best_energy = energy;
+        }
+      }
+// reduce local best states and energy to global best
+#ifdef WITH_OPENMP
+#pragma omp critical
+      {
+        if (local_best_energy < best_energy) {
+          best_energy = local_best_energy;
+          best_states.clear();
+          best_states = std::move(local_best_states);
+        } else if (local_best_energy == best_energy) {
+          best_states.insert(best_states.end(), local_best_states.begin(),
+                             local_best_states.end());
+        }
+      }
+#else
+      best_energy = local_best_energy;
+      best_states = std::move(local_best_states);
+#endif
+    }
+
+    // reconstruct best states into vectors from the size_t representation
+    best_states_reconstructed =
+        std::vector<std::vector<sT>>(best_states.size(), std::vector<sT>(n, 0));
+
+    for (int i = 0; i < best_states.size(); i++) {
+      auto const &state = best_states[i];
+      best_states_reconstructed[i] =
+          binary_representation_to_state_vector<sT>(state, n);
+    }
+
+    return best_states_reconstructed;
+  }
+};
+
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/datatypes.h
+
+#pragma once
+
+#include <cstdint>
+
+using StateType = std::uint8_t;
+using IndexType = std::uint32_t;
+using ValueType = double;
+---------------------
+
+CAMINHO DO ARQUIVO: ./src/matrix_reader.h
+
+#pragma once
+
+#include "matrix.h"
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
+
+template <typename iT, typename vT> struct Coordinate {
+  iT row;
+  iT col;
+  vT value;
+};
+
+template <typename vT, typename iT>
+SparseMatrix<vT, iT> readMatrixMarket(const std::string &file_path) {
+  std::ifstream file(file_path);
+  if (!file.is_open()) {
+    throw std::runtime_error("Could not open file: " + file_path);
+  }
+
+  std::string line;
+  bool symmetric = false;
+  bool first_line = true;
+  // Skip comment lines
+  while (std::getline(file, line)) {
+    // Check for symmetry in header
+    if (line.find("symmetric") != std::string::npos && first_line) {
+      symmetric = true;
+    }
+    first_line = false;
+    if (!line.empty() && (line[0] != '#' && line[0] != '%')) {
+      break;
+    }
+  }
+  // Remove potential carriage return character
+  if (!line.empty() && line.back() == '\r')
+    line.pop_back();
+
+  std::istringstream header_stream(line);
+  iT n;   // rows
+  iT nnz; // nnz
+  iT m;   // cols
+
+  // read first two values as matrix dimensions
+  header_stream >> n >> m;
+  // read third value as number of non-zeros if present, otherwise matrix is
+  // square
+  if (header_stream.rdbuf()->in_avail())
+    header_stream >> nnz;
+  else {
+    nnz = m;
+    m = n;
+  }
+
+  // store coordinates temporarily
+  std::vector<Coordinate<iT, vT>> coo_coordinates;
+
+  // read coordinates
+  while (std::getline(file, line)) {
+    if (line.empty())
+      continue;
+    if (!line.empty() && line.back() == '\r')
+      line.pop_back();
+    std::istringstream iss(line);
+    int row, col;
+    float val; // stored as float in file, convert to vT
+    iss >> row >> col >> val;
+    if (symmetric && row != col) {
+      // Store symmetric entry
+      coo_coordinates.push_back({static_cast<iT>(col - 1),
+                                 static_cast<iT>(row - 1),
+                                 static_cast<vT>(val)});
+    }
+    coo_coordinates.push_back({static_cast<iT>(row - 1),
+                               static_cast<iT>(col - 1), static_cast<vT>(val)});
+  }
+  if (symmetric)
+    nnz = coo_coordinates.size();
+
+  // sort coordinates by row and then by column
+  std::sort(coo_coordinates.begin(), coo_coordinates.end(),
+            [](const Coordinate<iT, vT> &a, const Coordinate<iT, vT> &b) {
+              if (a.row == b.row)
+                return a.col < b.col;
+              return a.row < b.row;
+            });
+
+  file.close();
+
+  // Convert to CSR format
+  SparseMatrix<vT, iT> mat(n, m);
+  mat.allocate(nnz);
+  mat.offsets[0] = 0;
+  // Count non-zeros per row
+  int i = 0;
+  for (const auto &coord : coo_coordinates) {
+    mat.values[i] = coord.value;
+    mat.columns[i] = coord.col;
+    i++;
+    mat.offsets[coord.row + 1] = i;
+  }
+
+  return mat;
+}
+
+---------------------
+
