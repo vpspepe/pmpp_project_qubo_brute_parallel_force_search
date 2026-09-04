@@ -19,7 +19,7 @@ int main() {
   }
 
   // scan directory for matrix files:
-  std::string matrix_path = "./data_dense";
+  std::string matrix_path = "./data";
   // check if path exists
   bool exists = false;
   try {
@@ -28,7 +28,7 @@ int main() {
   }
   if (!exists) {
     try {
-      matrix_path = "../data_dense";
+      matrix_path = "../data";
       exists = std::filesystem::exists(matrix_path);
     } catch (std::filesystem::filesystem_error &e) {
       exists = false;
@@ -37,7 +37,7 @@ int main() {
   if (!exists) {
     std::cerr
         << "Data directory not found (needs to be placed in the same "
-           "folder or one level up - \"./data_dense\" or \"../data_dense\")!\n";
+           "folder or one level up - \"./data\" or \"../data\")!\n";
     return -1;
   }
   auto iterator = std::filesystem::directory_iterator(matrix_path);
